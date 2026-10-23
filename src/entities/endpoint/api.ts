@@ -107,3 +107,23 @@ export async function invokeEndpoint(path: string, apiKey: string, payload: unkn
   res.headers.forEach((v, k) => (headers[k] = v));
   return { status: res.status, headers, body, ms: Math.round(performance.now() - started) };
 }
+
+// ===== 확장: Slack 봇 연결(목) =====
+export interface SlackLink {
+  endpoint_id: string;
+  team: string;
+  channel: string;
+  connected_at: string;
+}
+
+export function useSlackLink(endpointId: string) {
+  return useQuery({ queryKey: ['endpoints', wsKey(), 'slack', endpointId], queryFn: () => api.get<SlackLink | null>(`/endpoints/${endpointId}/slack`) });
+}
+
+export function useConnectSlack(endpointId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { team: string; channel: string } | null) => (input ? api.put<SlackLink>(`/endpoints/${endpointId}/slack`, input) : api.delete(`/endpoints/${endpointId}/slack`)),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['endpoints', wsKey(), 'slack', endpointId] }),
+  });
+}

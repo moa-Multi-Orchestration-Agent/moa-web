@@ -51,4 +51,6 @@ export interface KnowledgeBaseRow {
   created_at: string;
   doc_count: number;
   ready_count: number;
+  /** 확장: 색인 실패 문서 수 */
+  failed_count?: number;
 }

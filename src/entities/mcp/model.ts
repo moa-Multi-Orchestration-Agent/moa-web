@@ -18,6 +18,7 @@ export const mcpServerRowSchema = z
     status: z.enum(['connected', 'error', 'syncing']),
     tool_count: z.number(),
     icon: z.string(),
+    auth: z.enum(['none', 'token', 'oauth']).optional(),
   })
   ;
 export type McpServerRow = z.infer<typeof mcpServerRowSchema>;

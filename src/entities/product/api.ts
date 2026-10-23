@@ -110,3 +110,54 @@ export function useMyProducts() {
 export function useSalesStats(days: number) {
   return useQuery({ queryKey: productKeys.stats(days), queryFn: () => api.get<SalesStats>('/market/sales-stats', { query: { days } }) });
 }
+
+// ===== 확장: 판매자 팔로우 · 무료 체험 · 리뷰 답글 =====
+export interface SellerInfo {
+  name: string;
+  product_count: number;
+  follower_count: number;
+  following: boolean;
+}
+
+export function useSeller(name: string | null | undefined) {
+  return useQuery({ queryKey: ['market', wsKey(), 'seller', name ?? '_'], queryFn: () => api.get<SellerInfo>(`/market/sellers/${encodeURIComponent(name!)}`), enabled: !!name });
+}
+
+export function useFollowSeller(name: string) {
+  const qc = useQueryClient();
+  const key = ['market', wsKey(), 'seller', name];
+  return useMutation({
+    mutationFn: (follow: boolean) => (follow ? api.post(`/market/sellers/${encodeURIComponent(name)}/follow`) : api.delete(`/market/sellers/${encodeURIComponent(name)}/follow`)),
+    onMutate: async (follow) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<SellerInfo>(key);
+      if (prev) qc.setQueryData<SellerInfo>(key, { ...prev, following: follow, follower_count: prev.follower_count + (follow ? 1 : -1) });
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => qc.setQueryData(key, ctx?.prev),
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+  });
+}
+
+export function useTrial(productId: string) {
+  return useQuery({ queryKey: ['market', wsKey(), 'trial', productId], queryFn: () => api.get<{ limit: number; used: number; remaining: number }>(`/market/products/${productId}/trial`) });
+}
+
+export function useStartTrial(productId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Record<string, unknown>) => api.post<{ run: { id: string }; remaining: number }>(`/market/products/${productId}/trial`, { input }),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ['market', wsKey(), 'trial', productId] });
+      void qc.invalidateQueries({ queryKey: ['runs'], refetchType: 'none' });
+    },
+  });
+}
+
+export function useReplyReview() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: string }) => api.post(`/market/reviews/${id}/reply`, { body }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.all }),
+  });
+}

@@ -85,6 +85,7 @@ export const reviewRowSchema = z
     body: z.string().nullable(),
     created_at: z.string(),
     author_name: z.string(),
+    reply: z.object({ body: z.string(), created_at: z.string() }).nullable().optional(),
   })
   ;
 export type ReviewRow = z.infer<typeof reviewRowSchema>;

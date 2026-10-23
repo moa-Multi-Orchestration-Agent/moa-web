@@ -27,7 +27,7 @@ export function useMcpTools(serverId?: string) {
 export function useCreateMcpServer() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: McpServerForm & { allow_tools?: string[] | null }) =>
+    mutationFn: (input: McpServerForm & { allow_tools?: string[] | null; auth?: 'none' | 'token' | 'oauth'; oauth_code?: string }) =>
       api.post<McpServerRow>('/mcp/servers', { ...input, command: input.transport === 'stdio' ? input.command : null, url: input.transport === 'stdio' ? null : input.url }),
     onSuccess: () => qc.invalidateQueries({ queryKey: mcpKeys.all }),
   });
