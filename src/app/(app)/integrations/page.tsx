@@ -1,13 +1,14 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { copy } from '@/shared/lib/copy';
-import { PageContainer, PageHeader } from '@/shared/ui/page-header';
+import { IntegrationsView } from './_components/integrations-view';
 
 export const metadata: Metadata = { title: copy.pages.integrations };
 
-export default function Page() {
+export default function IntegrationsPage() {
   return (
-    <PageContainer>
-      <PageHeader title={copy.pages.integrations} />
-    </PageContainer>
+    <Suspense>
+      <IntegrationsView />
+    </Suspense>
   );
 }
