@@ -7,6 +7,7 @@ import { useEndpointStats, useUpdateEndpoint, type Endpoint } from '@/entities/e
 import { useCurrentWorkspace } from '@/entities/workspace';
 import { ApiKeysCard } from '@/features/deploy/api-keys-card';
 import { embedSnippet } from '@/features/deploy/code-samples';
+import { SlackConnect } from '@/features/deploy/slack-connect';
 import { isApiError } from '@/shared/lib/api-client';
 import { copy } from '@/shared/lib/copy';
 import { BarChart } from '@/shared/ui/bar-chart';
@@ -103,7 +104,7 @@ export function EndpointOverview({ ep }: { ep: Endpoint }) {
             { t: '웹 채팅 위젯', d: '자사 웹사이트에 붙이는 대화창', a: <CopyButton value={embedSnippet(ep.url)} label="임베드 코드 복사" /> },
             { t: 'UI 버튼', d: '워크스페이스 홈 · 외부 페이지 실행 버튼', a: <CopyButton value={`<button data-moa-endpoint="${ep.url}">${ep.agentName} 실행</button>`} label="버튼 코드 복사" /> },
             { t: '슬래시 명령', d: '⌘K 팔레트에서 바로 실행. 부족한 입력은 되물어 받음', a: <code className="bg-surface rounded px-2 py-1 font-mono text-xs">/{ep.slug} [내용]</code> },
-            { t: 'Slack 봇', d: '@MOA 멘션으로 대화', a: <Button size="sm" variant="outline" disabled title="1차 범위 밖(설계서 미결 7)">Slack에 연결 (준비 중)</Button> },
+            { t: 'Slack 봇', d: '@MOA 멘션으로 대화', a: <SlackConnect endpointId={ep.id} agentName={ep.agentName} /> },
           ].map((x) => (
             <div key={x.t} className="rounded-lg border p-4">
               <p className="font-semibold">{x.t}</p>
