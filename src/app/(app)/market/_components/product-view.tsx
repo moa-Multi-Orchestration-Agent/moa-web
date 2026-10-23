@@ -7,6 +7,8 @@ import { CheckCircle2, CircleDashed, XCircle } from 'lucide-react';
 import { LICENSE_LABEL, marketCategoryLabel, useProduct, useReviews, type LicenseType } from '@/entities/product';
 import { useCurrentWorkspace } from '@/entities/workspace';
 import { PurchaseDialog } from '@/features/market/purchase-dialog';
+import { FollowButton } from '@/features/market/seller-follow';
+import { TrialButton } from '@/features/market/trial-dialog';
 import { RatingBars, Stars } from '@/features/market/rating';
 import { useSearchState } from '@/shared/hooks/use-search-state';
 import { isApiError } from '@/shared/lib/api-client';
@@ -53,6 +55,7 @@ export function ProductView({ id }: { id: string }) {
             <li key={r.id} className="py-3">
               <p className="flex items-center gap-2 text-sm font-semibold">{r.author_name} <Stars value={r.rating} /> <span className="text-muted text-xs font-normal">{relativeTime(r.created_at)}</span></p>
               <p className="mt-1 text-sm">{r.body}</p>
+              {r.reply ? <p className="bg-surface mt-1.5 rounded-md px-3 py-2 text-xs"><b>{p.sellerName} 답글</b> · {r.reply.body}</p> : null}
             </li>
           ))}
         </ul>
@@ -77,7 +80,7 @@ export function ProductView({ id }: { id: string }) {
               <h1 className="text-[28px] font-bold">{p.title}</h1>
               <p className="text-muted flex flex-wrap items-center gap-1 text-sm">{p.sellerName} · <Stars value={p.ratingAvg} /> {p.ratingAvg.toFixed(1)} (리뷰 {p.ratingCount}) · 설치 {formatNumber(p.installCount)} · 최신 v{p.latestSemver}</p>
             </div>
-            <Button variant="outline" disabled title="1차 범위 밖">제작자 팔로우</Button>
+            <FollowButton name={p.sellerName} disabled={p.mine} />
           </header>
           <LineTabs label="상품 탭" value={s.tab} onChange={(v) => set({ tab: v })} items={[{ value: 'overview', label: '개요' }, { value: 'preview', label: '구성 미리보기' }, { value: 'reviews', label: `리뷰 ${p.ratingCount}` }, { value: 'versions', label: '버전 기록' }]} />
           {s.tab === 'reviews' ? reviewList : s.tab === 'versions' ? (
@@ -127,7 +130,7 @@ export function ProductView({ id }: { id: string }) {
           <Guarded allowed={can('market') && !p.mine && !ownedClone} reason={reasonBuy}>
             <Button className="w-full" onClick={() => setBuying(true)} data-testid="buy">{price(lic) === 0 ? '무료로 받기' : '구매하고 스튜디오에 추가'}</Button>
           </Guarded>
-          <Button variant="outline" className="w-full" disabled title="1차 범위 밖">무료로 3회 실행해 보기</Button>
+          <TrialButton productId={p.id} title={p.title} disabled={!can('edit') || p.mine} disabledReason={p.mine ? '내 상품입니다' : copy.common.viewerReason} />
           <ul className="text-muted space-y-1 border-t pt-3 text-xs">
             <li>· 새 버전 자동 업데이트</li>
             <li>· 실행 토큰 비용은 내 워크스페이스에 청구</li>

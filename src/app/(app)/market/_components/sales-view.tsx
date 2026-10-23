@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { toast } from 'sonner';
 import { useMyProducts, useSalesStats } from '@/entities/product';
 import { useCurrentWorkspace } from '@/entities/workspace';
 import { Stars } from '@/features/market/rating';
+import { ReviewReply } from '@/features/market/review-reply';
 import { useSearchState } from '@/shared/hooks/use-search-state';
 import { copy } from '@/shared/lib/copy';
 import { formatKrw, formatNumber, relativeTime } from '@/shared/lib/format';
@@ -39,7 +39,7 @@ export function SalesView() {
         description="마켓에 게시한 에이전트와 워크플로의 판매, 설치, 리뷰, 정산을 관리합니다."
         actions={
           <>
-            <Button variant="outline" onClick={() => toast.info('정산 계좌는 설정 > 결제 · 정산에서 바꿉니다.')}>정산 계좌 설정</Button>
+            <Button variant="outline" asChild><Link href="/settings?tab=billing">정산 계좌 설정</Link></Button>
             <Guarded allowed={can('market')} reason={copy.common.adminOnly}>
               <Button asChild={can('market')}>{can('market') ? <Link href="/market/sell">+ 새로 게시</Link> : <span>+ 새로 게시</span>}</Button>
             </Guarded>
@@ -65,7 +65,7 @@ export function SalesView() {
                 <li key={r.id} className="py-3 text-sm">
                   <p className="flex items-center gap-1.5 font-semibold">{r.author_name} <Stars value={r.rating} /></p>
                   <p className="text-muted">{r.body}</p>
-                  <button type="button" className="text-primary mt-1 text-xs font-semibold" onClick={() => toast.info('답글 기능은 다음 단계에서 붙입니다.')}>답글 달기</button>
+                  <ReviewReply reviewId={r.id} existing={r.reply} disabled={!can('market')} />
                 </li>
               ))}
             </ul>
