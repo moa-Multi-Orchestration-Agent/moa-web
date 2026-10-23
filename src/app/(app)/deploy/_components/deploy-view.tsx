@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
@@ -8,7 +9,7 @@ import { useEndpoints, useUpdateEndpoint } from '@/entities/endpoint';
 import { useWorkflows } from '@/entities/workflow';
 import { useCurrentWorkspace } from '@/entities/workspace';
 import { ApiKeysCard } from '@/features/deploy/api-keys-card';
-import { NewDeployDialog } from '@/features/deploy/new-deploy-dialog';
+
 import { useSearchState } from '@/shared/hooks/use-search-state';
 import { copy } from '@/shared/lib/copy';
 import { formatNumber, relativeTime } from '@/shared/lib/format';
@@ -20,6 +21,8 @@ import { PageContainer, PageHeader, SectionCard } from '@/shared/ui/page-header'
 import { EmptyState, ErrorState, ListSkeleton } from '@/shared/ui/states';
 import { Switch } from '@/shared/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table';
+
+const NewDeployDialog = dynamic(() => import('@/features/deploy/new-deploy-dialog').then((m) => m.NewDeployDialog), { ssr: false });
 
 export function DeployView() {
   const [s, set] = useSearchState({ tab: 'agents', new: '', agent: '' });

@@ -42,15 +42,16 @@
 |---|---|---|
 | /workflows/[id]/edit | 114kB (+React Flow 지연 로드) | 충족 |
 | /login, /signup, /market/purchases | 182kB | 충족 |
-| /studio/new · /market · /market/sales | 197~200kB | 충족 |
+| /studio/new · /market · /market/sales | 198~200kB | 충족 |
 | /home · /runs/[id] · /templates · /market/[id] · /market/sell · /integrations | 204~214kB | 약간 초과 |
-| /runs · /deploy · /deploy/[id] · /studio · /settings | 219~233kB | 초과 |
-| /agents/[id] | 261kB | 초과 |
-React·Next 공통 104kB + 공급자(Query·sonner·radix·zod) 약 78kB가 바닥이라 화면 코드가 25kB만 넘어도 200kB를 넘는다. 3D(three)와 React Flow, react-markdown, 컨텍스트 패널, 스킬 추가 다이얼로그는 지연 로드한다.
+| /settings · /runs · /deploy · /deploy/[id] · /studio | 218~230kB | 초과 |
+| /agents/[id] | 253kB | 초과 |
+
+분석(`ANALYZE=true`): Next·React 런타임이 약 137kB, 모든 화면이 쓰는 zod(12.5kB)·TanStack Query(12kB)·sonner(9kB)·tailwind-merge(8kB)가 약 42kB라 화면 코드에 남는 몫이 20kB 안팎이다. 지금까지 한 것: 기능 배럴 대신 파일 직접 import, react-markdown·컨텍스트 패널·스킬 추가·새 배포 다이얼로그·설정/배포 상세/에이전트 보조 탭 지연 로드, radix-ui optimizePackageImports. 더 줄이려면 응답 검증을 `zod/mini`로 바꾸는 작업(모든 엔티티 스키마 수정)이 필요하다.
 
 ## 남은 문제
 1. ~~Figma 저장본 부족~~ → 해결: 13·15·컴포넌트 스크린샷을 받아 저장본을 채우고, 마켓 목록·판매 등록·배지 모양을 스크린샷에 맞춰 고쳤다.
-2. **번들 200kB 초과 라우트**(위 표). 공급자 분리, 다이얼로그 지연 로드를 더 해야 한다.
+2. **번들 200kB 초과 라우트**(위 표). 남은 방법은 zod/mini 전환과 화면별 다이얼로그 지연 로드 확대.
 3. **목 API 확장 엔드포인트**(frontend-plan 5절 + `GET /context/sessions?agent_id`)와 오류 코드 `MOA-WF-009`(초안 버전 충돌)는 설계서에 없다. 백엔드와 합의가 필요하다.
 4. **1차 범위 밖으로 비활성 처리한 것**: 제작자 팔로우, 무료 3회 실행, Slack 봇 연결, 리뷰 답글, 결제·정산 정보 변경, 지식베이스 문서 업로드, MCP OAuth 로그인, 3D 인스펙터의 프리셋 저장·결과 미리보기 자리.
 5. 에이전트 "버전"은 설계서에 없어 연결된 기본 워크플로의 버전을 보여 준다(D24).

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, Lock, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
@@ -8,14 +9,13 @@ import { useAgent } from '@/entities/agent';
 import { useAgentSessions, useContextSession } from '@/entities/context';
 import { useEndpoints } from '@/entities/endpoint';
 import { useCurrentWorkspace } from '@/entities/workspace';
-import { AgentDeployTab, AgentLogsTab } from '@/features/agent-builder/side-tabs';
 import { ALIAS_RE, useAgentDraft, useSaveAgent } from '@/features/agent-builder/draft';
 import { BasicCard, MemoryCard, ModelCard, PromptCard } from '@/features/agent-builder/config-cards';
 import { BuilderHeader, type BuilderTab } from '@/features/agent-builder/builder-header';
 import { ChatPanel } from '@/features/agent-builder/chat-panel';
 import { SkillsCard, WorkflowsCard } from '@/features/agent-builder/skills-workflows';
 import { useAgentChat } from '@/features/agent-builder/use-agent-chat';
-import { SnapshotControls } from '@/features/editor/context-panel';
+import { SnapshotControls } from '@/features/editor/context-panel/snapshots';
 import { LazyContextPanel as ContextPanel } from '@/features/editor/context-panel/lazy';
 import { useLeaveGuard } from '@/shared/hooks/use-leave-guard';
 import { useSearchState } from '@/shared/hooks/use-search-state';
@@ -24,6 +24,9 @@ import { copy } from '@/shared/lib/copy';
 import { Button } from '@/shared/ui/button';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { EmptyState, ErrorState } from '@/shared/ui/states';
+
+const AgentDeployTab = dynamic(() => import('@/features/agent-builder/side-tabs').then((m) => m.AgentDeployTab), { ssr: false });
+const AgentLogsTab = dynamic(() => import('@/features/agent-builder/side-tabs').then((m) => m.AgentLogsTab), { ssr: false });
 
 export function AgentPage({ agentId }: { agentId: string | null }) {
   const [s, set] = useSearchState({ tab: 'config', missing: '' });

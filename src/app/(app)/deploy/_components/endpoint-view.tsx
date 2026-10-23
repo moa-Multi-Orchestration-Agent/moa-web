@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useEndpoint } from '@/entities/endpoint';
@@ -12,7 +13,12 @@ import { PageContainer, PageHeader } from '@/shared/ui/page-header';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { EmptyState, ErrorState } from '@/shared/ui/states';
 import { EndpointOverview } from './endpoint-overview';
-import { ExamplesTab, OpenApiTab, PlaygroundTab, WebhookTab } from './endpoint-tabs';
+
+const tab = (name: 'ExamplesTab' | 'OpenApiTab' | 'PlaygroundTab' | 'WebhookTab') => dynamic(() => import('./endpoint-tabs').then((m) => m[name]), { ssr: false, loading: () => <Skeleton className="h-64" /> });
+const ExamplesTab = tab('ExamplesTab');
+const OpenApiTab = tab('OpenApiTab');
+const PlaygroundTab = tab('PlaygroundTab');
+const WebhookTab = tab('WebhookTab');
 
 const TABS = [
   { value: 'overview', label: '개요' },

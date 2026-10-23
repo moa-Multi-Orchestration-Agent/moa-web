@@ -1,14 +1,20 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { Lock } from 'lucide-react';
 import { useCurrentWorkspace } from '@/entities/workspace';
-import { ApiKeysCard } from '@/features/deploy/api-keys-card';
 import { useSearchState } from '@/shared/hooks/use-search-state';
 import { LineTabs } from '@/shared/ui/line-tabs';
 import { PageContainer, PageHeader, SectionCard } from '@/shared/ui/page-header';
-import { BudgetTab } from './budget-tab';
-import { BillingTab, GeneralTab } from './general-tab';
+import { Skeleton } from '@/shared/ui/skeleton';
 import { TeamTab } from './team-tab';
+
+// 기본 탭(팀·권한) 밖은 열 때만 불러온다
+const loading = () => <Skeleton className="h-64 w-full" />;
+const BudgetTab = dynamic(() => import('./budget-tab').then((m) => m.BudgetTab), { ssr: false, loading });
+const GeneralTab = dynamic(() => import('./general-tab').then((m) => m.GeneralTab), { ssr: false, loading });
+const BillingTab = dynamic(() => import('./general-tab').then((m) => m.BillingTab), { ssr: false, loading });
+const ApiKeysCard = dynamic(() => import('@/features/deploy/api-keys-card').then((m) => m.ApiKeysCard), { ssr: false, loading });
 
 const TABS = [
   { value: 'team', label: '팀 · 권한' },
