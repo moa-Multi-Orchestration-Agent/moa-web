@@ -18,6 +18,7 @@ import { Label } from '@/shared/ui/label';
 import { SectionCard } from '@/shared/ui/page-header';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { CardGridSkeleton, EmptyState, ErrorState } from '@/shared/ui/states';
+import { OAuthConsentDialog } from './oauth-consent';
 
 function ServerCard({ s }: { s: McpServer }) {
   const [open, setOpen] = useState(false);
@@ -33,7 +34,7 @@ function ServerCard({ s }: { s: McpServer }) {
         <span aria-hidden className="bg-surface flex size-10 items-center justify-center rounded-md border font-bold">{s.name.slice(0, 1)}</span>
         <div className="min-w-0 flex-1">
           <p className="font-bold">{s.name}</p>
-          <p className="text-muted text-xs">{TRANSPORT_LABEL[s.transport]} · {s.url ?? s.command}</p>
+          <p className="text-muted text-xs">{TRANSPORT_LABEL[s.transport]} · {s.url ?? s.command}{s.auth === 'oauth' ? ' · OAuth' : s.auth === 'token' ? ' · 정적 토큰' : ''}</p>
         </div>
         <Badge variant={st.v}><st.i className={st.v === 'blue' ? 'animate-spin' : undefined} aria-hidden /> {st.t}</Badge>
       </div>
@@ -62,20 +63,30 @@ function ServerCard({ s }: { s: McpServer }) {
   );
 }
 
+type AuthKind = 'none' | 'token' | 'oauth';
+const AUTH_LABEL: Record<AuthKind, string> = { none: '없음', token: '정적 토큰', oauth: 'OAuth 로그인' };
+
 function AddServerPanel() {
   const create = useCreateMcpServer();
   const creds = useCredentials();
   const { can } = useCurrentWorkspace();
   const [form, setForm] = useState<McpServerForm>({ name: '', transport: 'http', command: '', url: 'https://', credential_id: null });
-  const [errs, setErrs] = useState<Partial<Record<keyof McpServerForm, string>>>({});
+  const [errs, setErrs] = useState<Partial<Record<keyof McpServerForm | 'auth', string>>>({});
+  const [auth, setAuth] = useState<AuthKind>('none');
+  const [consent, setConsent] = useState<McpServerForm | null>(null);
+  const send = (data: McpServerForm, oauthCode?: string) =>
+    create.mutate({ ...data, credential_id: auth === 'token' ? data.credential_id : null, auth, oauth_code: oauthCode }, {
+      onSuccess: (s) => { toast.success(`${s.name}을(를) 연결하고 도구 ${s.tool_count}개를 가져왔습니다.`); setForm({ name: '', transport: 'http', command: '', url: 'https://', credential_id: null }); setAuth('none'); },
+      onError: (e) => (isApiError(e) && e.code === 'MOA-MCP-001' ? setErrs({ [auth === 'oauth' ? 'auth' : 'url']: `${e.detail} (MOA-MCP-001)` }) : toast.error(e.message)),
+    });
   const submit = () => {
     const r = mcpServerFormSchema.safeParse(form);
     if (!r.success) return setErrs(Object.fromEntries(r.error.issues.map((i) => [i.path[0], i.message])));
+    if (auth === 'token' && !r.data.credential_id) return setErrs({ auth: '정적 토큰으로 쓸 자격증명을 고르세요.' });
     setErrs({});
-    create.mutate(r.data, {
-      onSuccess: (s) => { toast.success(`${s.name}을(를) 연결하고 도구 ${s.tool_count}개를 가져왔습니다.`); setForm({ name: '', transport: 'http', command: '', url: 'https://', credential_id: null }); },
-      onError: (e) => (isApiError(e) && e.code === 'MOA-MCP-001' ? setErrs({ url: `${e.detail} (MOA-MCP-001)` }) : toast.error(e.message)),
-    });
+    // OAuth는 제공자 동의를 먼저 받는다(설계서 미결 7 — 목에서만 흐름을 흉내)
+    if (auth === 'oauth') return setConsent(r.data);
+    send(r.data);
   };
   const disabled = !can('manageKeys');
   return (
@@ -86,18 +97,30 @@ function AddServerPanel() {
           <div className="space-y-1.5"><Label htmlFor="mcp-transport">전송 방식</Label>
             <Select value={form.transport} onValueChange={(v) => setForm((f) => ({ ...f, transport: v as McpServerForm['transport'] }))} disabled={disabled}><SelectTrigger id="mcp-transport" className="w-full"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(TRANSPORT_LABEL).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent></Select>
           </div>
-          <div className="space-y-1.5"><Label htmlFor="mcp-cred">인증(정적 토큰)</Label>
-            <Select value={form.credential_id ?? 'none'} onValueChange={(v) => setForm((f) => ({ ...f, credential_id: v === 'none' ? null : v }))} disabled={disabled}><SelectTrigger id="mcp-cred" className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">없음</SelectItem>{(creds.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>)}</SelectContent></Select>
+          <div className="space-y-1.5"><Label htmlFor="mcp-auth">인증</Label>
+            <Select value={auth} onValueChange={(v) => { setAuth(v as AuthKind); setErrs((e) => ({ ...e, auth: undefined })); }} disabled={disabled}><SelectTrigger id="mcp-auth" className="w-full" aria-invalid={!!errs.auth}><SelectValue /></SelectTrigger><SelectContent>{Object.entries(AUTH_LABEL).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent></Select>
           </div>
         </div>
+        {auth === 'token' ? (
+          <div className="space-y-1.5"><Label htmlFor="mcp-cred">토큰 자격증명</Label>
+            <Select value={form.credential_id ?? undefined} onValueChange={(v) => setForm((f) => ({ ...f, credential_id: v }))} disabled={disabled}><SelectTrigger id="mcp-cred" className="w-full" aria-invalid={!!errs.auth}><SelectValue placeholder="자격증명 고르기" /></SelectTrigger><SelectContent>{(creds.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>)}</SelectContent></Select>
+          </div>
+        ) : null}
+        {errs.auth ? <p className="text-danger text-xs" role="alert">{errs.auth}</p> : null}
         {form.transport === 'stdio' ? (
           <div className="space-y-1.5"><Label htmlFor="mcp-cmd">실행 명령</Label><Input id="mcp-cmd" value={form.command} onChange={(e) => setForm((f) => ({ ...f, command: e.target.value }))} placeholder="npx -y @modelcontextprotocol/server-filesystem /data" className="font-mono text-xs" disabled={disabled} aria-invalid={!!errs.command} />{errs.command ? <p className="text-danger text-xs">{errs.command}</p> : null}</div>
         ) : (
           <div className="space-y-1.5"><Label htmlFor="mcp-url">서버 URL</Label><Input id="mcp-url" value={form.url} onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))} placeholder="https://mcp.서비스.com/mcp" className="font-mono text-xs" disabled={disabled} aria-invalid={!!errs.url} />{errs.url ? <p className="text-danger text-xs">{errs.url}</p> : <p className="text-muted text-xs">주소에 fail을 넣으면 연결 실패(MOA-MCP-001)를 볼 수 있어요.</p>}</div>
         )}
-        <p className="text-muted text-xs">연결하면 도구 목록을 가져와 에이전트 스킬과 워크플로 노드에 함께 추가합니다. OAuth 로그인은 1차 범위 밖(설계서 미결 7)이라 정적 토큰만 지원합니다.</p>
+        <p className="text-muted text-xs">연결하면 도구 목록을 가져와 에이전트 스킬과 워크플로 노드에 함께 추가합니다. OAuth 로그인은 목에서 동의 화면만 흉내 냅니다(설계서 미결 7).</p>
         <Guarded allowed={!disabled} reason={copy.common.adminOnly}><Button type="submit" disabled={create.isPending}>{create.isPending ? <Loader2 className="animate-spin" aria-hidden /> : null}연결하고 추가</Button></Guarded>
       </form>
+      <OAuthConsentDialog
+        open={!!consent}
+        provider={consent?.name ?? ''}
+        onAllow={(code) => { if (consent) send(consent, code); setConsent(null); }}
+        onDeny={() => { setConsent(null); setErrs({ auth: 'OAuth 권한을 허용하지 않아 연결하지 않았습니다.' }); }}
+      />
     </SectionCard>
   );
 }
