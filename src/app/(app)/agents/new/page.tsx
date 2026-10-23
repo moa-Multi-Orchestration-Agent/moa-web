@@ -1,13 +1,14 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { copy } from '@/shared/lib/copy';
-import { PageContainer, PageHeader } from '@/shared/ui/page-header';
+import { AgentPage } from '../_components/agent-page';
 
 export const metadata: Metadata = { title: copy.pages.agentNew };
 
-export default function Page() {
+export default function AgentNewPage() {
   return (
-    <PageContainer>
-      <PageHeader title={copy.pages.agentNew} />
-    </PageContainer>
+    <Suspense>
+      <AgentPage agentId={null} />
+    </Suspense>
   );
 }

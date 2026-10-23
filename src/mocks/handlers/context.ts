@@ -7,6 +7,18 @@ import { sessionView } from '../views';
 const sessionOf = (wsId: string, id: string) => db.context_sessions.find((s) => s.id === id && s.workspace_id === wsId);
 
 export const contextHandlers = [
+  // 확장: 에이전트의 최근 대화 세션(테스트 탭에서 이어 쓰기)
+  http.get(`${API}/context/sessions`, ({ request }) => {
+    const ctx = guard(request);
+    if (isResponse(ctx)) return ctx;
+    const agentId = new URL(request.url).searchParams.get('agent_id');
+    const items = db.context_sessions
+      .filter((x) => x.workspace_id === ctx.wsId && (!agentId || x.agent_id === agentId))
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      .slice(0, 10)
+      .map(sessionView);
+    return json({ items, next_cursor: null });
+  }),
   http.get(`${API}/context/sessions/:id`, ({ request, params }) => {
     const ctx = guard(request);
     if (isResponse(ctx)) return ctx;

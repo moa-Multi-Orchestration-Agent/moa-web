@@ -10,6 +10,14 @@ export const contextKeys = {
   snapshots: (id: string) => ['context', wsKey(), 'snapshots', id] as const,
 };
 
+export function useAgentSessions(agentId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['context', wsKey(), 'sessions', agentId ?? '_'],
+    queryFn: async () => contextSessionRowSchema.array().parse((await api.get<Page<unknown>>('/context/sessions', { query: { agent_id: agentId ?? undefined } })).items),
+    enabled: !!agentId,
+  });
+}
+
 export function useContextSession(id: string | null | undefined) {
   return useQuery({
     queryKey: contextKeys.session(id ?? '_'),

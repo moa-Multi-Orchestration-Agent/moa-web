@@ -1,13 +1,15 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { copy } from '@/shared/lib/copy';
-import { PageContainer, PageHeader } from '@/shared/ui/page-header';
+import { AgentPage } from '../_components/agent-page';
 
 export const metadata: Metadata = { title: copy.pages.agent };
 
-export default function Page() {
+export default async function AgentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   return (
-    <PageContainer>
-      <PageHeader title={copy.pages.agent} />
-    </PageContainer>
+    <Suspense>
+      <AgentPage agentId={id} />
+    </Suspense>
   );
 }
