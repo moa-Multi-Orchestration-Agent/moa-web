@@ -99,6 +99,9 @@ GitHub 이슈는 아직 만들지 않았다(이슈 번호 없음 → 브랜치 `
 
 `GET /auth/me`, `POST /auth/logout`, `POST /auth/signup`, `GET /workspaces`, `PATCH /workspaces/{id}`, `PATCH|DELETE /workspaces/{id}/members/{userId}`, `GET /workflows/{id}`, `PATCH|DELETE /workflows/{id}`, `GET /workflows/{id}/versions(/{v})`, `POST /agents|workflows/{id}/duplicate`, `DELETE /agents/{id}/skills/{skillId}`, `PUT /agents/{id}/workflows`, `GET /node-catalog`, `GET /runs`, `GET /approvals`, `GET /context/sessions/{id}`, `GET /context/sessions/{id}/snapshots`, `GET /mcp/tools`, `GET|DELETE /credentials`, `GET /knowledge-bases`, `GET /endpoints`, `GET|PATCH /endpoints/{id}`, `GET /endpoints/check-slug`, `GET /endpoints/{id}/stats`, `GET /endpoints/{id}/webhook-deliveries`, `POST /endpoints/{id}/webhook-deliveries/{d}/redeliver`, `GET /api-keys`, `GET /templates/{id}`, `GET /market/products/{id}`, `GET /market/products/{id}/reviews`, `POST /market/scan`, `GET /market/my-products`, `GET /market/sales-stats`, `GET /licenses`, `POST /licenses/{id}/review`
 
+1차 범위 밖 기능을 목으로 돌리려고 더한 확장 엔드포인트(`src/mocks/handlers/extras.ts`, 설계서 미결 3·7 관련):
+`GET /context/sessions?agent_id`, `GET /market/sellers/{name}`, `POST|DELETE /market/sellers/{name}/follow`, `GET|POST /market/products/{id}/trial`(3회, 초과 시 429 `MOA-RATE-001`), `POST /market/reviews/{id}/reply`, `GET|PUT /billing`(소유자, 끝 4자리만 저장·응답), `GET|POST /knowledge-bases/{id}/documents`(사전 서명 URL 흉내, 대기→색인 중→준비됨/실패), `DELETE /knowledge-bases/{id}/documents/{docId}`, `GET|POST /presets/3d`(같은 이름이면 덮어씀), `GET|PUT|DELETE /endpoints/{id}/slack`. 기존 엔드포인트 확장: `POST /mcp/servers`의 `auth`(`none`·`token`·`oauth`)와 `oauth_code`, `POST /runs`의 `definition`·`label`(워크플로 없는 체험 실행).
+
 ## 6. 진행 순서
 
 0단계(이 문서) → 1단계 뼈대 → 2단계 타입·목 API → 3-1 ~ 3-11 → 4단계 E2E. 진행 결과는 `docs/frontend-report.md`.
