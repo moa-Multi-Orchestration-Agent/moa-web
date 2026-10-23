@@ -1,13 +1,15 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { copy } from '@/shared/lib/copy';
-import { PageContainer, PageHeader } from '@/shared/ui/page-header';
+import { EndpointView } from '../_components/endpoint-view';
 
 export const metadata: Metadata = { title: copy.pages.deployDetail };
 
-export default function Page() {
+export default async function EndpointPage({ params }: { params: Promise<{ endpointId: string }> }) {
+  const { endpointId } = await params;
   return (
-    <PageContainer>
-      <PageHeader title={copy.pages.deployDetail} />
-    </PageContainer>
+    <Suspense>
+      <EndpointView id={endpointId} />
+    </Suspense>
   );
 }

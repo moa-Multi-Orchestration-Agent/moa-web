@@ -1,13 +1,14 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { copy } from '@/shared/lib/copy';
-import { PageContainer, PageHeader } from '@/shared/ui/page-header';
+import { DeployView } from './_components/deploy-view';
 
 export const metadata: Metadata = { title: copy.pages.deploy };
 
-export default function Page() {
+export default function DeployPage() {
   return (
-    <PageContainer>
-      <PageHeader title={copy.pages.deploy} />
-    </PageContainer>
+    <Suspense>
+      <DeployView />
+    </Suspense>
   );
 }
