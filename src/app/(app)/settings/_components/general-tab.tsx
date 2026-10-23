@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
+import { billingFormSchema, useBilling, useUpdateBilling, type BillingForm } from '@/entities/budget';
 import { useCurrentWorkspace, useUpdateWorkspace, workspaceFormSchema, type WorkspaceForm } from '@/entities/workspace';
 import { copy } from '@/shared/lib/copy';
 import { Button } from '@/shared/ui/button';
@@ -13,6 +14,8 @@ import { SectionCard } from '@/shared/ui/page-header';
 import { RadioGroup, RadioGroupItem } from '@/shared/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Slider } from '@/shared/ui/slider';
+import { Skeleton } from '@/shared/ui/skeleton';
+import { ErrorState } from '@/shared/ui/states';
 
 export function GeneralTab() {
   const { workspace, can } = useCurrentWorkspace();
@@ -63,17 +66,73 @@ export function GeneralTab() {
   );
 }
 
+const BANKS = ['국민은행', '신한은행', '우리은행', '하나은행', '카카오뱅크', '토스뱅크'];
+const CARDS = ['현대카드', '신한카드', '삼성카드', 'KB국민카드', '비씨카드'];
+
+/** 결제·정산 정보(모의). 소유자만 바꿀 수 있고, 저장 후에는 끝 4자리만 보인다. */
 export function BillingTab() {
+  const { can } = useCurrentWorkspace();
+  const q = useBilling();
+  const update = useUpdateBilling();
+  const [form, setForm] = useState<BillingForm>({ card_brand: '', card_number: '', payout_bank: '', payout_account: '', payout_holder: '' });
+  const [errors, setErrors] = useState<Partial<Record<keyof BillingForm, string>>>({});
+  useEffect(() => {
+    if (q.data) setForm({ card_brand: q.data.card_brand, card_number: '', payout_bank: q.data.payout_bank, payout_account: '', payout_holder: q.data.payout_holder });
+  }, [q.data]);
+  const owner = can('ownerOnly');
+  const save = () => {
+    const r = billingFormSchema.safeParse(form);
+    if (!r.success) return setErrors(Object.fromEntries(r.error.issues.map((i) => [i.path[0], i.message])));
+    setErrors({});
+    update.mutate(r.data, { onSuccess: () => { toast.success('결제 · 정산 정보를 바꿨습니다.'); setForm((f) => ({ ...f, card_number: '', payout_account: '' })); }, onError: (e) => toast.error(e.message) });
+  };
+  const sel = (id: keyof BillingForm, label: string, opts: string[]) => (
+    <div className="space-y-1.5">
+      <Label htmlFor={`bill-${id}`}>{label}</Label>
+      <Select value={form[id] || undefined} onValueChange={(v) => setForm((f) => ({ ...f, [id]: v }))} disabled={!owner}>
+        <SelectTrigger id={`bill-${id}`} className="w-full" aria-invalid={!!errors[id]}><SelectValue placeholder="고르기" /></SelectTrigger>
+        <SelectContent>{opts.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+      </Select>
+      {errors[id] ? <p className="text-danger text-xs">{errors[id]}</p> : null}
+    </div>
+  );
+  const input = (id: keyof BillingForm, label: string, placeholder?: string, mono = true) => (
+    <div className="space-y-1.5">
+      <Label htmlFor={`bill-${id}`}>{label}</Label>
+      <Input id={`bill-${id}`} value={form[id]} onChange={(e) => setForm((f) => ({ ...f, [id]: e.target.value }))} placeholder={placeholder} className={mono ? 'font-mono' : undefined} disabled={!owner} autoComplete="off" inputMode={mono ? 'numeric' : undefined} aria-invalid={!!errors[id]} />
+      {errors[id] ? <p className="text-danger text-xs">{errors[id]}</p> : null}
+    </div>
+  );
+  if (q.isPending) return <SectionCard title="결제 · 정산"><Skeleton className="h-48" /></SectionCard>;
+  if (q.isError) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
+  const b = q.data;
   return (
-    <SectionCard title="결제 · 정산">
-      <dl className="max-w-md space-y-3 text-sm">
-        <div className="flex justify-between"><dt className="text-muted">플랜</dt><dd className="font-semibold">Team</dd></div>
-        <div className="flex justify-between"><dt className="text-muted">결제 수단</dt><dd className="font-mono">카드 ••••4242</dd></div>
-        <div className="flex justify-between"><dt className="text-muted">판매 정산 계좌</dt><dd className="font-mono">국민은행 ••••1024</dd></div>
-        <div className="flex justify-between"><dt className="text-muted">정산일</dt><dd>매월 10일 · 수수료 20%</dd></div>
-      </dl>
-      <p className="text-muted mt-4 text-xs">학기 범위에서는 모의 결제만 지원합니다(설계서 미결 3). 실제 PG 연동은 백엔드 준비 후 붙입니다.</p>
-      <Button variant="outline" className="mt-3" disabled>결제 · 정산 정보 변경</Button>
-    </SectionCard>
+    <div className="grid gap-5 xl:grid-cols-[380px_1fr]">
+      <SectionCard title="현재 정보">
+        <dl className="space-y-3 text-sm">
+          <div className="flex justify-between"><dt className="text-muted">플랜</dt><dd className="font-semibold">Team</dd></div>
+          <div className="flex justify-between"><dt className="text-muted">결제 수단</dt><dd className="font-mono" data-testid="billing-card">{b ? `${b.card_brand} ••••${b.card_last4}` : '없음'}</dd></div>
+          <div className="flex justify-between"><dt className="text-muted">판매 정산 계좌</dt><dd className="font-mono">{b ? `${b.payout_bank} ••••${b.payout_last4}` : '없음'}</dd></div>
+          <div className="flex justify-between"><dt className="text-muted">예금주</dt><dd>{b?.payout_holder ?? '—'}</dd></div>
+          <div className="flex justify-between"><dt className="text-muted">정산일</dt><dd>매월 10일 · 수수료 20%</dd></div>
+        </dl>
+        <p className="text-muted mt-4 text-xs">모의 결제입니다(설계서 미결 3). 실제 PG 연동은 백엔드 준비 후 붙입니다.</p>
+      </SectionCard>
+      <SectionCard title="결제 · 정산 정보 변경">
+        <form onSubmit={(e) => { e.preventDefault(); save(); }} className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {sel('card_brand', '카드사', CARDS)}
+            {input('card_number', '카드 번호(바꿀 때만)', '0000 0000 0000 0000')}
+            {sel('payout_bank', '정산 은행', BANKS)}
+            {input('payout_account', '계좌 번호(바꿀 때만)', '숫자만')}
+            {input('payout_holder', '예금주', undefined, false)}
+          </div>
+          <p className="text-muted text-xs">카드·계좌 번호는 저장하지 않고 끝 4자리만 남깁니다.</p>
+          <Guarded allowed={owner} reason="결제 · 정산 정보는 소유자만 바꿀 수 있습니다.">
+            <Button type="submit" disabled={update.isPending}>저장</Button>
+          </Guarded>
+        </form>
+      </SectionCard>
+    </div>
   );
 }
