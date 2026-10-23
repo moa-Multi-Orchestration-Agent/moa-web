@@ -1,13 +1,14 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { copy } from '@/shared/lib/copy';
-import { PageContainer, PageHeader } from '@/shared/ui/page-header';
+import { RunsView } from './_components/runs-view';
 
 export const metadata: Metadata = { title: copy.pages.runs };
 
-export default function Page() {
+export default function RunsPage() {
   return (
-    <PageContainer>
-      <PageHeader title={copy.pages.runs} />
-    </PageContainer>
+    <Suspense>
+      <RunsView />
+    </Suspense>
   );
 }

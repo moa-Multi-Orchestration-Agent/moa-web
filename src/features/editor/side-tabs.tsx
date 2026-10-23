@@ -38,7 +38,7 @@ export function WorkflowRunsTab({ workflowId }: { workflowId: string }) {
               {q.items.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell>
-                    <Link href={`/runs/${r.id}`} aria-label={`실행 ${r.id.slice(0, 8)} 상세`}>
+                    <Link href={`/runs/${r.id}`} aria-label={`실행 ${r.id.slice(-6)} 상세`}>
                       <RunStatusBadge status={r.status} />
                     </Link>
                   </TableCell>

@@ -1,13 +1,10 @@
 import type { Metadata } from 'next';
 import { copy } from '@/shared/lib/copy';
-import { PageContainer, PageHeader } from '@/shared/ui/page-header';
+import { RunDetailView } from '../_components/run-detail-view';
 
 export const metadata: Metadata = { title: copy.pages.run };
 
-export default function Page() {
-  return (
-    <PageContainer>
-      <PageHeader title={copy.pages.run} />
-    </PageContainer>
-  );
+export default async function RunDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <RunDetailView id={id} />;
 }
