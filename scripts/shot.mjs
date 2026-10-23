@@ -22,7 +22,7 @@ const errors = [];
 page.on('pageerror', (e) => errors.push(`${page.url()} ${e.message}`));
 page.on('console', (m) => m.type() === 'error' && errors.push(`${page.url()} console: ${m.text()}`));
 for (const p of paths) {
-  await page.goto(base + p, { waitUntil: 'networkidle' });
+  await page.goto(base + p, { waitUntil: 'load', timeout: 120_000 });
   await page.waitForTimeout(wait);
   const name = p.replace(/^\//, '').replace(/[/?=&]/g, '_') || 'root';
   await page.screenshot({ path: join(outDir, `${name}.png`) });

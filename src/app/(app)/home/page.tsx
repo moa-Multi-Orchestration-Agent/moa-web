@@ -1,13 +1,9 @@
 import type { Metadata } from 'next';
 import { copy } from '@/shared/lib/copy';
-import { PageContainer, PageHeader } from '@/shared/ui/page-header';
+import { HomeView } from './_components/home-view';
 
 export const metadata: Metadata = { title: copy.pages.home };
 
-export default function Page() {
-  return (
-    <PageContainer>
-      <PageHeader title={copy.pages.home} />
-    </PageContainer>
-  );
+export default function HomePage() {
+  return <HomeView />;
 }
