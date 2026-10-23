@@ -1,10 +1,13 @@
 /**
  * 편집기 스토어 (design.md 3.4.3 ① 자료구조 그대로).
  * nodes·edges·serverVersion·dirty·issues·runState + 실행 취소(zundo, UNDO_LIMIT=100).
+ * 노드 데이터 수정은 immer 초안으로 한다. React Flow가 노드 객체를 다루므로 자동 동결은 끈다.
  */
 import { addEdge, applyEdgeChanges, applyNodeChanges, type Connection, type EdgeChange, type NodeChange } from '@xyflow/react';
 import { temporal } from 'zundo';
+import { setAutoFreeze } from 'immer';
 import { create } from 'zustand';
+import { immer } from 'zustand/middleware/immer';
 import type { ValidationIssue, WorkflowDetailRow } from '@/entities/workflow';
 import { fromDefinition, type FlowEdge, type FlowNode } from './convert';
 
@@ -73,10 +76,11 @@ const shape = (s: Pick<EditorState, 'nodes' | 'edges'>) =>
   JSON.stringify({ n: s.nodes.map((n) => [n.id, Math.round(n.position.x), Math.round(n.position.y), n.data]), e: s.edges.map((e) => [e.id, e.source, e.sourceHandle, e.target, e.targetHandle]) });
 
 let lastRecord = 0;
+setAutoFreeze(false);
 
 export const useEditorStore = create<EditorState>()(
   temporal(
-    (set, get) => ({
+    immer((set, get) => ({
       workflowId: null,
       nodes: [],
       edges: [],
@@ -110,9 +114,24 @@ export const useEditorStore = create<EditorState>()(
         const label = src?.data.type === 'condition' ? (c.sourceHandle === 'true' ? '예' : c.sourceHandle === 'false' ? '아니오' : undefined) : undefined;
         set((s) => ({ edges: addEdge({ ...c, id: `e-${c.source}-${c.sourceHandle}-${c.target}-${c.targetHandle}`, label, data: { condition: null } }, s.edges), dirty: true }));
       },
-      addNode: (n) => set((s) => ({ nodes: [...s.nodes.map((x) => ({ ...x, selected: false })), { ...n, selected: true }], dirty: true })),
-      updateNode: (id, patch) => set((s) => ({ nodes: s.nodes.map((n) => (n.id === id ? { ...n, data: { ...n.data, ...patch } } : n)), dirty: true })),
-      updateConfig: (id, patch) => set((s) => ({ nodes: s.nodes.map((n) => (n.id === id ? { ...n, data: { ...n.data, config: { ...n.data.config, ...patch } } } : n)), dirty: true })),
+      addNode: (n) =>
+        set((s) => {
+          for (const x of s.nodes) x.selected = false;
+          s.nodes.push({ ...n, selected: true });
+          s.dirty = true;
+        }),
+      updateNode: (id, patch) =>
+        set((s) => {
+          const n = s.nodes.find((x) => x.id === id);
+          if (n) Object.assign(n.data, patch);
+          s.dirty = true;
+        }),
+      updateConfig: (id, patch) =>
+        set((s) => {
+          const n = s.nodes.find((x) => x.id === id);
+          if (n) Object.assign(n.data.config, patch);
+          s.dirty = true;
+        }),
       setNodes: (nodes) => set({ nodes, dirty: true }),
       deleteSelected: () =>
         set((s) => {
@@ -123,7 +142,11 @@ export const useEditorStore = create<EditorState>()(
             dirty: true,
           };
         }),
-      selectOnly: (id) => set((s) => ({ nodes: s.nodes.map((n) => ({ ...n, selected: n.id === id })), edges: s.edges.map((e) => ({ ...e, selected: false })) })),
+      selectOnly: (id) =>
+        set((s) => {
+          for (const n of s.nodes) n.selected = n.id === id;
+          for (const e of s.edges) e.selected = false;
+        }),
       copySelection: () => {
         const nodes = get().nodes.filter((n) => n.selected);
         const ids = new Set(nodes.map((n) => n.id));
@@ -147,7 +170,10 @@ export const useEditorStore = create<EditorState>()(
         set((s) => ({ nodes: [...s.nodes.map((n) => ({ ...n, selected: false })), ...nodes], edges: [...s.edges, ...edges], dirty: true }));
       },
       setIssues: (issues) => set(groupIssues(issues)),
-      setRunState: (id, st) => set((s) => ({ runState: { ...s.runState, [id]: st } })),
+      setRunState: (id, st) =>
+        set((s) => {
+          s.runState[id] = st;
+        }),
       resetRunState: () => set({ runState: {} }),
       setLastRunId: (id) => set({ lastRunId: id }),
       markSaving: () => set({ saveStatus: 'saving', saveError: null }),
@@ -159,7 +185,7 @@ export const useEditorStore = create<EditorState>()(
         set({ saveStatus: 'saved', lastSavedAt: Date.now() });
       },
       adoptServerVersion: (v) => set({ serverVersion: v, conflict: null, dirty: true }),
-    }),
+    })),
     {
       limit: UNDO_LIMIT,
       partialize: (s) => ({ nodes: s.nodes, edges: s.edges }) as EditorState,

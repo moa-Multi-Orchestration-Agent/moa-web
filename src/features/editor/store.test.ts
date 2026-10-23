@@ -49,6 +49,21 @@ describe('editor store', () => {
     expect(useEditorStore.getState().nodes).toHaveLength(before + 1);
   });
 
+  it('설정 수정은 이전 상태를 건드리지 않고(immer) 실행 취소로 되돌린다', async () => {
+    await wait(450);
+    const prev = useEditorStore.getState().nodes;
+    const prevPrompt = prev.find((n) => n.id === 'llm1')!.data.config.prompt;
+    useEditorStore.getState().updateConfig('llm1', { prompt: '바뀐 프롬프트' });
+    const next = useEditorStore.getState().nodes;
+    expect(next).not.toBe(prev);
+    expect(prev.find((n) => n.id === 'llm1')!.data.config.prompt).toBe(prevPrompt);
+    expect(next.find((n) => n.id === 'llm1')!.data.config.prompt).toBe('바뀐 프롬프트');
+    // 바뀌지 않은 노드는 같은 참조를 유지한다
+    expect(next.find((n) => n.id !== 'llm1')).toBe(prev.find((n) => n.id !== 'llm1'));
+    undo();
+    expect(useEditorStore.getState().nodes.find((n) => n.id === 'llm1')!.data.config.prompt).toBe(prevPrompt);
+  });
+
   it('선택 삭제는 연결된 엣지도 지운다', () => {
     useEditorStore.getState().selectOnly('rag');
     useEditorStore.getState().deleteSelected();
