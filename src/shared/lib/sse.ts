@@ -8,7 +8,7 @@ import { apiUrl, buildQuery, getWorkspaceId } from './api-client';
 
 export type SseStatus = 'connecting' | 'open' | 'reconnecting' | 'polling' | 'closed';
 
-export interface SseOptions<E extends Record<string, unknown>> {
+export interface SseOptions<E extends object> {
   /** 이벤트 이름 → 처리 함수 */
   handlers: { [K in keyof E]?: (data: E[K], meta: { id: string | null }) => void };
   /** 상태 변화 알림(재연결 배너 등) */
@@ -27,7 +27,7 @@ export interface SseConnection {
 export const SSE_MAX_FAILURES = 3;
 export const SSE_POLL_MS = 2000;
 
-export function connectSse<E extends Record<string, unknown>>(path: string, opts: SseOptions<E>): SseConnection {
+export function connectSse<E extends object>(path: string, opts: SseOptions<E>): SseConnection {
   const maxFailures = opts.maxFailures ?? SSE_MAX_FAILURES;
   const pollMs = opts.pollIntervalMs ?? SSE_POLL_MS;
   let status: SseStatus = 'connecting';
