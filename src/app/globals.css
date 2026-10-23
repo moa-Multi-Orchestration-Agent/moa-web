@@ -1,0 +1,125 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * 디자인 토큰 (CLAUDE.md). 이름은 CLAUDE.md 표를 따른다.
+ * --muted는 "보조 텍스트" 색이다(shadcn의 muted 배경과 다름). 옅은 배경은 --surface를 쓴다.
+ */
+:root {
+  --primary: #2a56c6;
+  --primary-foreground: #ffffff;
+  --background: #ffffff;
+  --surface: #f6f7f9;
+  --surface-strong: #eceef2;
+  --border: #e3e5ea;
+  --foreground: #1c1c1a;
+  --muted: #6b6f78;
+  --success: #1f9d55;
+  --warning: #c98a00;
+  --danger: #d64545;
+  --primary-soft: #e8eefb;
+  --success-soft: #e6f5ec;
+  --warning-soft: #fbf1dc;
+  --danger-soft: #fbe9e9;
+
+  /* shadcn 호환 별칭 */
+  --card: var(--background);
+  --card-foreground: var(--foreground);
+  --popover: var(--background);
+  --popover-foreground: var(--foreground);
+  --secondary: var(--surface);
+  --secondary-foreground: var(--foreground);
+  --accent: var(--surface-strong);
+  --accent-foreground: var(--foreground);
+  --destructive: var(--danger);
+  --input: var(--border);
+  --ring: var(--primary);
+  --radius: 8px;
+}
+
+:root.dark {
+  --primary: #6b8ef0;
+  --primary-foreground: #0f1115;
+  --background: #0f1115;
+  --surface: #171a20;
+  --surface-strong: #222631;
+  --border: #2a2f38;
+  --foreground: #ecedef;
+  --muted: #9a9fa8;
+  --success: #3dbb73;
+  --warning: #e8a61f;
+  --danger: #e86464;
+  --primary-soft: #1d2740;
+  --success-soft: #15291f;
+  --warning-soft: #2e2512;
+  --danger-soft: #331c1e;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: 4px;
+  --radius-md: 6px; /* 입력 */
+  --radius-lg: 8px; /* 카드 */
+  --radius-xl: 12px;
+
+  --font-sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo',
+    'Noto Sans KR', sans-serif;
+  --font-mono: var(--font-jetbrains-mono), 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --text-title: 20px;
+  --text-subtitle: 16px;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    font-size: 14px;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+}
+
+/* React Flow 기본 색을 토큰에 맞춤 */
+.react-flow {
+  --xy-background-color: var(--surface);
+  --xy-edge-stroke: var(--muted);
+  --xy-minimap-background-color: var(--background);
+  --xy-controls-button-background-color: var(--background);
+  --xy-controls-button-color: var(--foreground);
+  --xy-controls-button-border-color: var(--border);
+}
