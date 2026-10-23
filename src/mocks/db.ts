@@ -63,6 +63,8 @@ export interface DbMcpServer {
   created_at: string;
   status: 'connected' | 'error' | 'syncing';
   icon: string;
+  /** 확장: 인증 방식(설계서 미결 7은 정적 토큰만, 목에서는 OAuth 흐름도 흉내) */
+  auth?: 'none' | 'token' | 'oauth';
 }
 export interface DbMcpTool {
   id: string;
@@ -193,6 +195,8 @@ export interface DbRun {
   created_at: string;
   context_session_id: string | null;
   rerun_of: string | null;
+  /** 마켓 무료 체험처럼 워크플로 없이 도는 실행의 표시 이름(확장) */
+  label?: string | null;
 }
 export type DbRunStep = RunStepRow;
 export type DbApproval = Omit<ApprovalRow, 'target_name' | 'target_kind'>;
@@ -296,6 +300,8 @@ export interface DbReview {
   rating: number;
   body: string | null;
   created_at: string;
+  /** 판매자 답글(확장) */
+  reply?: { body: string; created_at: string } | null;
 }
 export interface DbBudget {
   id: string;
@@ -380,6 +386,13 @@ export interface Db {
   usage_ledger: DbLedger[];
   webhook_deliveries: DbWebhookDelivery[];
   templates: DbTemplate[];
+  /** 확장(1차 범위 밖 기능의 목) */
+  follows: { workspace_id: string; seller_name: string }[];
+  trials: { workspace_id: string; product_id: string; run_id: string; created_at: string }[];
+  billing: Record<string, { card_brand: string; card_last4: string; payout_bank: string; payout_last4: string; payout_holder: string; updated_at: string }>;
+  kb_documents: { id: string; kb_id: string; filename: string; mime: string; bytes: number; status: 'pending' | 'indexing' | 'ready' | 'failed'; chunk_count: number; error: string | null; created_at: string }[];
+  presets_3d: { id: string; workspace_id: string; name: string; params: Record<string, unknown>; created_at: string }[];
+  slack_links: { endpoint_id: string; team: string; channel: string; connected_at: string }[];
 }
 
 export const db: Db = seed();

@@ -4,6 +4,7 @@ import { authHandlers } from './auth';
 import { billingHandlers } from './billing';
 import { contextHandlers } from './context';
 import { deployHandlers } from './deploy';
+import { extraHandlers } from './extras';
 import { integrationHandlers } from './integrations';
 import { marketHandlers } from './market';
 import { middleware } from './middleware';
@@ -26,4 +27,5 @@ export const handlers: RequestHandler[] = [
   ...templateHandlers,
   ...marketHandlers,
   ...billingHandlers,
+  ...extraHandlers,
 ];

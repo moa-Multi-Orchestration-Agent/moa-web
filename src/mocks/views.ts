@@ -135,7 +135,7 @@ export function runView(r: DbRun): RunRow {
   return {
     ...r,
     target_kind: kind,
-    target_name: kind === 'agent' ? (agent?.name ?? '삭제된 에이전트') : (wf?.name ?? agent?.name ?? '삭제된 워크플로'),
+    target_name: r.label ?? (kind === 'agent' ? (agent?.name ?? '삭제된 에이전트') : (wf?.name ?? agent?.name ?? '삭제된 워크플로')),
   } as RunRow;
 }
 

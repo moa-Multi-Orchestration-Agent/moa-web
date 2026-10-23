@@ -25,6 +25,8 @@ export interface CreateRunBody {
   context_session_id?: string;
   definition?: WorkflowDefinition;
   rerun_of?: string;
+  /** 워크플로 없이 정의만으로 도는 실행(마켓 무료 체험) */
+  label?: string;
 }
 
 /** run 행을 만들고 시뮬레이터를 시작한다. 배포 API 호출도 이 함수를 쓴다. */
@@ -45,10 +47,12 @@ export function createRun(wsId: string, b: CreateRunBody): DbRun | Response {
   } else {
     workflowId = workflowId ?? agent?.primary_workflow_id ?? null;
     const w = workflowId ? db.workflows.find((x) => x.id === workflowId && x.workspace_id === wsId && !x.deleted_at) : null;
-    if (!w) return problem('MOA-VALIDATION', '실행할 워크플로가 없습니다. 에이전트에 워크플로를 연결하세요.', {}, 422);
-    definition = b.definition ?? w.draft;
-    const versions = db.workflow_versions.filter((v) => v.workflow_id === w.id).sort((x, y) => y.version - x.version);
-    versionId = b.endpoint_id ? (db.endpoints.find((e) => e.id === b.endpoint_id)?.workflow_version_id ?? null) : (versions[0]?.id ?? `draft-${w.id}-${w.draft_version}`);
+    if (!w && !(b.label && b.definition)) return problem('MOA-VALIDATION', '실행할 워크플로가 없습니다. 에이전트에 워크플로를 연결하세요.', {}, 422);
+    definition = b.definition ?? w!.draft;
+    if (w) {
+      const versions = db.workflow_versions.filter((v) => v.workflow_id === w.id).sort((x, y) => y.version - x.version);
+      versionId = b.endpoint_id ? (db.endpoints.find((e) => e.id === b.endpoint_id)?.workflow_version_id ?? null) : (versions[0]?.id ?? `draft-${w.id}-${w.draft_version}`);
+    }
   }
 
   // 컨텍스트 세션: 에이전트 대화는 세션을 이어 쓴다
@@ -88,6 +92,7 @@ export function createRun(wsId: string, b: CreateRunBody): DbRun | Response {
     created_at: nowIso(),
     context_session_id: session.id,
     rerun_of: b.rerun_of ?? null,
+    label: b.label ?? null,
   };
   db.runs.push(run);
   startSimulation(run, definition!, { agentMode: isChat });

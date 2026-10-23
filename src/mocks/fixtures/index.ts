@@ -277,5 +277,21 @@ export function seed(): Db {
     usage_ledger: ledger,
     webhook_deliveries,
     templates: structuredClone(SEED_TEMPLATES),
+    follows: [],
+    trials: [],
+    billing: {
+      [WS1]: { card_brand: '현대카드', card_last4: '4242', payout_bank: '국민은행', payout_last4: '1024', payout_holder: '김모아', updated_at: at(30 * DAY) },
+      [WS2]: { card_brand: '신한카드', card_last4: '7788', payout_bank: '신한은행', payout_last4: '3301', payout_holder: '정하늘', updated_at: at(60 * DAY) },
+    },
+    kb_documents: [
+      ...['디자인 가이드 v2 - 색상.pdf', '디자인 가이드 v2 - 소재.pdf', '캠핑 의자 레퍼런스.md'].map((f, i) => ({ id: fid('kd', i + 1), kb_id: 'kb-design', filename: f, mime: f.endsWith('.md') ? 'text/markdown' : 'application/pdf', bytes: 240_000 + i * 51_000, status: 'ready' as const, chunk_count: 18 + i * 4, error: null, created_at: at((20 - i) * DAY) })),
+      ...['취업규칙 2026.pdf', '복리후생 안내.docx', '보안 정책.pdf'].map((f, i) => ({ id: fid('kd', 10 + i), kb_id: 'kb-policy', filename: f, mime: 'application/pdf', bytes: 410_000 + i * 30_000, status: (i === 2 ? 'indexing' : 'ready') as 'indexing' | 'ready', chunk_count: i === 2 ? 0 : 42 + i * 7, error: null, created_at: at((40 - i) * DAY) })),
+      { id: fid('kd', 20), kb_id: 'kb-faq', filename: '배송·환불 FAQ.md', mime: 'text/markdown', bytes: 38_000, status: 'ready' as const, chunk_count: 11, error: null, created_at: at(10 * DAY) },
+    ],
+    presets_3d: [
+      { id: fid('ps', 1), workspace_id: WS1, name: '캠핑 의자 v2', params: { volume: 60, density: 40, style: 70, symmetry: true, resolution: 'medium' }, created_at: at(5 * DAY) },
+      { id: fid('ps', 2), workspace_id: WS1, name: '미니멀 테이블', params: { volume: 45, density: 30, style: 55, symmetry: true, resolution: 'low' }, created_at: at(9 * DAY) },
+    ],
+    slack_links: [],
   };
 }

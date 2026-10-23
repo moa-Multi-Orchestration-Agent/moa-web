@@ -3,6 +3,7 @@ import { db, type DbMcpServer, type DbMcpTool } from '../db';
 import { API, body, guard, isResponse, json, notFound, problem } from '../lib/http';
 import { nowIso, uuid } from '../lib/util';
 import { credentialView, mcpServerView, mcpToolView } from '../views';
+import { kbView } from './extras';
 
 /** 새 서버를 "동기화"하면 이름에 맞는 도구 목록을 만든다(목) */
 function toolsFor(server: DbMcpServer): Omit<DbMcpTool, 'id' | 'server_id' | 'synced_at'>[] {
@@ -29,12 +30,13 @@ export const integrationHandlers = [
   http.post(`${API}/mcp/servers`, async ({ request }) => {
     const ctx = guard(request, 'admin');
     if (isResponse(ctx)) return ctx;
-    const b = await body<Partial<DbMcpServer>>(request);
+    const b = await body<Partial<DbMcpServer> & { oauth_code?: string }>(request);
     if (!b.name?.trim()) return problem('MOA-VALIDATION', '이름을 입력하세요.');
+    if (b.auth === 'oauth' && !b.oauth_code) return problem('MOA-MCP-001', 'OAuth 인증을 마치지 않았습니다. 제공자 화면에서 권한을 허용하세요.', {}, 401);
     if (b.transport === 'stdio' ? !b.command : !b.url) return problem('MOA-VALIDATION', b.transport === 'stdio' ? 'stdio는 실행 명령이 필요합니다.' : 'URL이 필요합니다.');
     if (db.mcp_servers.some((s) => s.workspace_id === ctx.wsId && s.name === b.name)) return problem('MOA-VALIDATION', '같은 이름의 서버가 있습니다.', {}, 409);
     if (b.url && /fail|unreachable/.test(b.url)) return problem('MOA-MCP-001', `${b.url}에 연결하지 못했습니다. 주소와 인증을 확인하세요.`);
-    const s: DbMcpServer = { id: uuid(), workspace_id: ctx.wsId, name: b.name.trim(), transport: b.transport ?? 'http', command: b.command ?? null, url: b.url ?? null, credential_id: b.credential_id ?? null, allow_tools: b.allow_tools ?? null, is_active: true, last_synced_at: nowIso(), created_at: nowIso(), status: 'connected', icon: b.name.toLowerCase() };
+    const s: DbMcpServer = { id: uuid(), workspace_id: ctx.wsId, name: b.name.trim(), transport: b.transport ?? 'http', command: b.command ?? null, url: b.url ?? null, credential_id: b.credential_id ?? null, allow_tools: b.allow_tools ?? null, is_active: true, last_synced_at: nowIso(), created_at: nowIso(), status: 'connected', icon: b.name.toLowerCase(), auth: b.auth ?? (b.credential_id ? 'token' : 'none') };
     db.mcp_servers.push(s);
     for (const t of toolsFor(s)) {
       if (s.allow_tools && !s.allow_tools.includes(t.name)) continue;
@@ -95,6 +97,6 @@ export const integrationHandlers = [
   http.get(`${API}/knowledge-bases`, ({ request }) => {
     const ctx = guard(request);
     if (isResponse(ctx)) return ctx;
-    return json({ items: db.knowledge_bases.filter((k) => k.workspace_id === ctx.wsId), next_cursor: null });
+    return json({ items: db.knowledge_bases.filter((k) => k.workspace_id === ctx.wsId).map(kbView), next_cursor: null });
   }),
 ];
