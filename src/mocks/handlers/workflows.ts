@@ -5,6 +5,7 @@ import { db, type DbWorkflow } from '../db';
 import { BLOCK_GROUPS, BLOCKS } from '../fixtures/blocks';
 import { API, body, guard, ifMatch, isResponse, json, notFound, paginate, problem } from '../lib/http';
 import { nowIso, sha256ish, uuid } from '../lib/util';
+import { broadcastDraft } from '../tab-sync';
 import { workflowDetailView, workflowView } from '../views';
 
 const findWf = (wsId: string, id: string) => db.workflows.find((w) => w.id === id && w.workspace_id === wsId && !w.deleted_at);
@@ -122,6 +123,7 @@ export const workflowHandlers = [
     w.draft_version += 1;
     w.updated_at = nowIso();
     const { issues } = validateDefinition(w.draft);
+    broadcastDraft(w.id);
     return json({ draft_version: w.draft_version, issues });
   }),
   http.post(`${API}/workflows/:id/validate`, async ({ request, params }) => {

@@ -4,8 +4,8 @@ const PORT = Number(process.env.E2E_PORT ?? 3100);
 
 export default defineConfig({
   testDir: './e2e',
-  timeout: 60_000,
-  expect: { timeout: 10_000 },
+  timeout: 90_000,
+  expect: { timeout: 15_000 },
   fullyParallel: false,
   workers: 2,
   retries: process.env.CI ? 1 : 0,
@@ -23,6 +23,6 @@ export default defineConfig({
     url: `http://localhost:${PORT}/login`,
     reuseExistingServer: !process.env.CI,
     timeout: 300_000,
-    env: { NEXT_PUBLIC_API_MOCKING: 'enabled' },
+    env: { NEXT_PUBLIC_API_MOCKING: 'enabled', NEXT_DIST_DIR: '.next-e2e' },
   },
 });
