@@ -48,6 +48,11 @@ const config = [
       'no-restricted-globals': ['error', { name: 'localStorage', message: '목 데이터는 메모리에만 둔다(localStorage 금지).' }],
     },
   },
+  {
+    // 테스트는 목 서버·픽스처를 직접 쓴다
+    files: ['src/**/*.test.{ts,tsx}'],
+    rules: { 'boundaries/dependencies': 'off' },
+  },
 ];
 
 export default config;
