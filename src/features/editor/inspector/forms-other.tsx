@@ -8,6 +8,7 @@ import { portsFromFields } from '../convert';
 import type { FormProps } from './forms-ai';
 import { AreaField, CheckField, SelectField, SliderField, TextField } from './fields';
 import { TemplateInput } from './template-input';
+import { PresetBar, ResultPreview } from './three-d-extras';
 
 export function HttpForm({ cfg, set, disabled }: FormProps) {
   const headers = (cfg.headers as { key: string; value: string }[]) ?? [];
@@ -47,12 +48,13 @@ export function CodeForm({ cfg, set, disabled, bindings }: FormProps) {
   );
 }
 
-export function ThreeDForm({ cfg, set, disabled, bindings }: FormProps) {
+export function ThreeDForm({ node, cfg, set, disabled, bindings }: FormProps) {
   const formats = (cfg.formats as string[]) ?? ['glb'];
   const toggle = (f: string) => set({ formats: formats.includes(f) ? formats.filter((x) => x !== f) : [...formats, f] });
   return (
     <div className="space-y-3">
       <p className="bg-primary-soft text-primary rounded-md px-3 py-2 text-xs font-medium">오래 걸리는 작업이라 비동기 실행으로 고정됩니다</p>
+      <PresetBar cfg={cfg} set={set} disabled={disabled} />
       <SelectField label="모드" value={String(cfg.mode ?? 'image_to_3d')} onChange={(v) => set({ mode: v })} options={[{ value: 'image_to_3d', label: '이미지 → 3D' }, { value: 'text_to_scene', label: '텍스트 → 장면' }, { value: 'edit', label: '편집' }, { value: 'render', label: '렌더링' }, { value: 'convert', label: '포맷 변환' }]} disabled={disabled} />
       {cfg.image !== undefined ? (
         <SelectField label="입력 이미지" value={String(cfg.image ?? '')} onChange={(v) => set({ image: v })} options={bindings.map((b) => ({ value: `{{${b.value}}}`, label: b.label }))} disabled={disabled} placeholder="앞 노드 출력 고르기" />
@@ -75,6 +77,10 @@ export function ThreeDForm({ cfg, set, disabled, bindings }: FormProps) {
           ))}
         </div>
       </fieldset>
+      <div className="space-y-1.5">
+        <p className="text-sm font-semibold">결과 미리보기</p>
+        <ResultPreview nodeId={node.id} />
+      </div>
     </div>
   );
 }

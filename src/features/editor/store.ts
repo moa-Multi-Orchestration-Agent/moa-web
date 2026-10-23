@@ -24,6 +24,8 @@ export interface EditorState {
   issues: Record<string, ValidationIssue[]>;
   globalIssues: ValidationIssue[];
   runState: Record<string, NodeRunState>;
+  /** 마지막 테스트 실행 id(인스펙터 결과 미리보기용) */
+  lastRunId: string | null;
   saveStatus: SaveStatus;
   saveError: string | null;
   lastSavedAt: number | null;
@@ -45,6 +47,7 @@ export interface EditorState {
   setIssues: (issues: ValidationIssue[]) => void;
   setRunState: (id: string, s: NodeRunState) => void;
   resetRunState: () => void;
+  setLastRunId: (id: string | null) => void;
   markSaving: () => void;
   markSaved: (version: number, issues: ValidationIssue[]) => void;
   markSaveError: (message: string) => void;
@@ -82,6 +85,7 @@ export const useEditorStore = create<EditorState>()(
       issues: {},
       globalIssues: [],
       runState: {},
+      lastRunId: null,
       saveStatus: 'idle',
       saveError: null,
       lastSavedAt: null,
@@ -90,7 +94,7 @@ export const useEditorStore = create<EditorState>()(
 
       init: (w) => {
         const { nodes, edges } = fromDefinition(w.draft);
-        set({ workflowId: w.id, nodes, edges, serverVersion: w.draft_version, dirty: false, issues: {}, globalIssues: [], runState: {}, saveStatus: 'idle', saveError: null, conflict: null });
+        set({ workflowId: w.id, nodes, edges, serverVersion: w.draft_version, dirty: false, issues: {}, globalIssues: [], runState: {}, lastRunId: null, saveStatus: 'idle', saveError: null, conflict: null });
         useEditorStore.temporal.getState().clear();
       },
       onNodesChange: (changes) => {
@@ -145,6 +149,7 @@ export const useEditorStore = create<EditorState>()(
       setIssues: (issues) => set(groupIssues(issues)),
       setRunState: (id, st) => set((s) => ({ runState: { ...s.runState, [id]: st } })),
       resetRunState: () => set({ runState: {} }),
+      setLastRunId: (id) => set({ lastRunId: id }),
       markSaving: () => set({ saveStatus: 'saving', saveError: null }),
       markSaved: (version, issues) => set({ serverVersion: version, dirty: false, saveStatus: 'saved', saveError: null, lastSavedAt: Date.now(), ...groupIssues(issues) }),
       markSaveError: (message) => set({ saveStatus: 'error', saveError: message }),

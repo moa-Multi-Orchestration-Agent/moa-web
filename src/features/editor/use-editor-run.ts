@@ -90,6 +90,7 @@ export function useEditorRun(workflowId: string) {
       try {
         const r = await start.mutateAsync({ workflow_id: workflowId, input, trigger: 'editor', definition: toDefinition(s.nodes, s.edges) });
         setRunId(r.id);
+        useEditorStore.getState().setLastRunId(r.id);
         setSessionId(r.context_session_id);
         push({ kind: 'status', text: `실행 시작 · ${r.id}` });
       } catch (e) {
