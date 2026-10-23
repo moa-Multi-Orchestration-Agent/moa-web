@@ -1,13 +1,14 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
+import { LoginForm } from '@/features/auth';
 import { copy } from '@/shared/lib/copy';
-import { PageContainer, PageHeader } from '@/shared/ui/page-header';
 
 export const metadata: Metadata = { title: copy.pages.login };
 
-export default function Page() {
+export default function LoginPage() {
   return (
-    <PageContainer>
-      <PageHeader title={copy.pages.login} />
-    </PageContainer>
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
