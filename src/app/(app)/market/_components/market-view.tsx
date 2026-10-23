@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CardGridSkeleton, EmptyState, ErrorState } from '@/shared/ui/states';
 
 export function MarketView() {
-  const [s, set] = useSearchState({ q: '', category: 'all', sort: 'popular', kind: 'all', license: 'all' });
+  const [s, set] = useSearchState({ q: '', category: 'all', sort: 'popular', kind: 'all', price: 'all', license: 'all' });
   const [q, setQ] = useState(s.q);
   const dq = useDebounced(q, 300);
   useEffect(() => {
@@ -27,7 +27,7 @@ export function MarketView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dq]);
   const { can } = useCurrentWorkspace();
-  const p = useProducts({ q: s.q || undefined, category: s.category === 'all' ? undefined : s.category, sort: s.sort, kind: s.kind === 'all' ? undefined : (s.kind as 'agent' | 'workflow'), license: s.license === 'all' ? undefined : s.license });
+  const p = useProducts({ q: s.q || undefined, category: s.category === 'all' ? undefined : s.category, sort: s.sort, kind: s.kind === 'all' ? undefined : (s.kind as 'agent' | 'workflow'), license: s.license === 'all' ? undefined : s.license, price: s.price === 'all' ? undefined : (s.price as 'free' | 'paid') });
   const { ref, inView } = useInView<HTMLDivElement>();
   useEffect(() => {
     if (inView && p.hasNextPage && !p.isFetchingNextPage) void p.fetchNextPage();
@@ -47,9 +47,9 @@ export function MarketView() {
         description="다른 사람이 만든 에이전트와 워크플로를 설치하거나, 내 것을 공유·판매합니다."
         actions={
           <>
-            <Button variant="outline" asChild><Link href="/market/purchases">내 구매</Link></Button>
+            <Button variant="outline" asChild><Link href="/market/purchases">구매 내역</Link></Button>
             <Guarded allowed={can('market')} reason={copy.common.adminOnly}>
-              <Button asChild={can('market')}>{can('market') ? <Link href="/market/sell">+ 판매 등록</Link> : <span>+ 판매 등록</span>}</Button>
+              <Button asChild={can('market')}>{can('market') ? <Link href="/market/sell">내 작업 판매하기</Link> : <span>내 작업 판매하기</span>}</Button>
             </Guarded>
           </>
         }
@@ -60,7 +60,8 @@ export function MarketView() {
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="어떤 일을 대신할 에이전트나 워크플로를 찾나요?" aria-label="마켓 검색" className="h-10 pl-9" />
         </div>
         {sel(s.kind, (v) => set({ kind: v }), [['all', '종류: 전체'], ['agent', '에이전트'], ['workflow', '워크플로']], '종류')}
-        {sel(s.license, (v) => set({ license: v }), [['all', '가격: 전체'], ['free', '무료'], ['clone', '복제 판매'], ['api_sub', 'API 구독']], '가격')}
+        {sel(s.price, (v) => set({ price: v }), [['all', '가격: 전체'], ['free', '무료'], ['paid', '유료']], '가격')}
+        {sel(s.license, (v) => set({ license: v }), [['all', '라이선스: 전체'], ['clone', '복제 가능'], ['free_share', '무료 공유'], ['api_sub', 'API 전용']], '라이선스')}
         {sel(s.sort, (v) => set({ sort: v }), MARKET_SORTS.map((x) => [x.id, x.label]), '정렬')}
       </div>
       <ChipGroup label="카테고리" value={s.category} onChange={(v) => set({ category: v })} options={[{ value: 'all', label: '전체' }, ...MARKET_CATEGORIES.map((c) => ({ value: c.id as string, label: c.label }))]} />
@@ -69,7 +70,7 @@ export function MarketView() {
       ) : p.isError ? (
         <ErrorState error={p.error} onRetry={() => void p.refetch()} />
       ) : p.items.length === 0 ? (
-        <EmptyState title="찾는 상품이 없어요" description="검색어나 카테고리를 바꿔 보세요." action={<Button variant="outline" onClick={() => { setQ(''); set({ q: '', category: 'all', kind: 'all', license: 'all' }); }}>필터 초기화</Button>} />
+        <EmptyState title="찾는 상품이 없어요" description="검색어나 카테고리를 바꿔 보세요." action={<Button variant="outline" onClick={() => { setQ(''); set({ q: '', category: 'all', kind: 'all', price: 'all', license: 'all' }); }}>필터 초기화</Button>} />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">{p.items.map((x) => <ProductCard key={x.id} p={x} />)}</div>
       )}

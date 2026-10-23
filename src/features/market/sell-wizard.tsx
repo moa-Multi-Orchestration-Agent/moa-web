@@ -90,9 +90,9 @@ export function SellWizard({ initialAgentId }: { initialAgentId?: string | null 
     <div className="space-y-5">
       <ol className="grid grid-cols-5 gap-2" aria-label="게시 단계">
         {STEPS.map((t, i) => (
-          <li key={t} aria-current={i === step ? 'step' : undefined} className={cn('bg-card flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm', i === step && 'border-primary')}>
-            <span className={cn('flex size-6 items-center justify-center rounded border text-xs font-semibold', i < step && 'bg-foreground text-background', i === step && 'border-primary text-primary')}>{i < step ? <Check className="size-3.5" aria-label="완료" /> : i + 1}</span>
-            <span className={i === step ? 'font-semibold' : 'text-muted'}>{t}</span>
+          <li key={t} aria-current={i === step ? 'step' : undefined} className={cn('bg-card flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm', i === step && 'border-primary bg-primary-soft')}>
+            <span className={cn('flex size-6 items-center justify-center rounded-full text-xs font-semibold', i <= step ? 'bg-primary text-primary-foreground' : 'bg-surface-strong text-muted')}>{i < step ? <Check className="size-3.5" aria-label="완료" /> : i + 1}</span>
+            <span className={i === step ? 'text-primary font-semibold' : i < step ? 'font-medium' : 'text-muted'}>{t}</span>
           </li>
         ))}
       </ol>
@@ -109,9 +109,9 @@ export function SellWizard({ initialAgentId }: { initialAgentId?: string | null 
             </div>
           )}
           <div className="mt-6 flex justify-between border-t pt-4">
-            <Button variant="outline" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}>이전</Button>
+            <Button variant="outline" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}>← 이전</Button>
             {step === 2 ? <Button variant="ghost" onClick={runScan} disabled={scan.isPending}>다시 검사</Button> : null}
-            {step < 4 ? <Button onClick={next} disabled={step === 2 && (scan.isPending || !findings)} data-testid="sell-next">다음</Button> : <Button onClick={submit} disabled={create.isPending} data-testid="sell-submit">{create.isPending ? <Loader2 className="animate-spin" aria-hidden /> : null}검수 요청</Button>}
+            {step < 4 ? <Button onClick={next} disabled={step === 2 && (scan.isPending || !findings)} data-testid="sell-next">다음 →</Button> : <Button onClick={submit} disabled={create.isPending} data-testid="sell-submit">{create.isPending ? <Loader2 className="animate-spin" aria-hidden /> : null}검수 요청</Button>}
           </div>
         </SectionCard>
         <SectionCard title="게시 요약">
@@ -128,9 +128,12 @@ export function SellWizard({ initialAgentId }: { initialAgentId?: string | null 
               <div className="flex flex-wrap gap-1.5">
                 {findings === null ? <Badge variant="gray">검사 전</Badge> : (
                   <>
-                    <Badge variant="green">자격증명 제거됨</Badge>
-                    <Badge variant={findings.some((f) => f.severity === 'error') ? 'red' : 'green'}>{findings.some((f) => f.severity === 'error') ? '비밀값 발견' : '비밀값 없음'}</Badge>
-                    <Badge variant={findings.some((f) => f.rule === 'internal_url') ? 'orange' : 'green'}>{findings.some((f) => f.rule === 'internal_url') ? '내부 URL 있음' : '내부 URL 없음'}</Badge>
+                    <Badge variant="green">자격증명 {Math.max(1, findings.filter((f) => f.rule === 'credential_ref').length)}건 분리</Badge>
+                    <Badge variant="green">API 키 제외</Badge>
+                    <Badge variant="green">장기 기억 제외</Badge>
+                    {findings.some((f) => f.rule === 'pii') ? <Badge variant="green">개인정보 의심 {findings.filter((f) => f.rule === 'pii').length}건 수정됨</Badge> : null}
+                    {findings.some((f) => f.severity === 'error') ? <Badge variant="red">비밀값 {findings.filter((f) => f.severity === 'error').length}건 · 등록 불가</Badge> : null}
+                    {findings.some((f) => f.rule === 'internal_url') ? <Badge variant="orange">내부 URL 확인 필요</Badge> : null}
                   </>
                 )}
               </div>

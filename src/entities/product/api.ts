@@ -21,6 +21,7 @@ export interface ProductParams {
   sort?: string;
   kind?: 'agent' | 'workflow';
   license?: string;
+  price?: 'free' | 'paid';
 }
 
 export const productKeys = {

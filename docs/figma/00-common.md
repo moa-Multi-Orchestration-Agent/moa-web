@@ -1,4 +1,4 @@
-# 공통 레이아웃 · 컴포넌트 (Figma `컴포넌트` 2:40 — 스크린샷 미추출, 메타데이터 기준)
+# 공통 레이아웃 · 컴포넌트 (Figma `컴포넌트` 2:40 — `00-components.png`)
 
 ## 앱 셸 (01·02·03·04·09~17 공통, 1440×900)
 - **좌측 사이드바 232px**: 로고 `MOA` + 부제 "AI 에이전트 오케스트레이션", 파란 `+ 새로 만들기` 버튼(전체 폭)
@@ -19,7 +19,7 @@
 | 컴포넌트 | 변형 |
 |---|---|
 | Button | Primary(파랑) · Secondary(흰 배경+테두리) · Ghost(글자만) · Warn(주황 계열) |
-| Badge | Gray · Blue · Orange · Green · Dark |
+| Badge | Gray · Blue · Orange · Green · Dark — 알약(pill) 모양 |
 | Nav Item | Size=Full/Compact × State=Default/Active |
 | Field | Default(라벨+입력 65px) · Area(라벨+텍스트영역 121px) |
 

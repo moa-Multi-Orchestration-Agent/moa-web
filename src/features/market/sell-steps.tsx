@@ -82,7 +82,7 @@ export function StepInfo({ form, set, errors }: { form: ListingForm; set: Set; e
 }
 
 const SEV = { info: { icon: Info, cls: 'text-primary', v: 'blue' as const, t: '자동 정리' }, warn: { icon: AlertTriangle, cls: 'text-warning', v: 'orange' as const, t: '확인 권장' }, error: { icon: AlertCircle, cls: 'text-danger', v: 'red' as const, t: '등록 불가' } };
-const RULE: Record<string, string> = { credential_ref: '자격증명 참조', anthropic_key: 'Anthropic 키', openai_key: 'OpenAI 키', aws_key: 'AWS 키', jwt: 'JWT', pem: '개인 키(PEM)', slack_token: 'Slack 토큰', internal_url: '내부 주소', high_entropy: '비밀값 의심' };
+const RULE: Record<string, string> = { credential_ref: '자격증명 참조', anthropic_key: 'Anthropic 키', openai_key: 'OpenAI 키', aws_key: 'AWS 키', jwt: 'JWT', pem: '개인 키(PEM)', slack_token: 'Slack 토큰', internal_url: '내부 주소', high_entropy: '비밀값 의심', pii: '개인정보 의심' };
 
 export function StepScan({ findings, pending }: { findings: ScanFinding[] | null; pending: boolean }) {
   if (pending || !findings) return <p className="text-muted flex items-center gap-2 text-sm"><Loader2 className="size-4 animate-spin" aria-hidden /> 에이전트와 워크플로를 검사하는 중…</p>;
@@ -115,22 +115,22 @@ export function StepPrice({ form, set, errors, canApi }: { form: ListingForm; se
   const box = (on: boolean) => cn('rounded-lg border p-4', on && 'border-primary bg-primary-soft/40');
   return (
     <div className="space-y-3">
-      <label className={box(form.free)}>
-        <span className="flex items-center gap-2 font-semibold"><Checkbox checked={form.free} onCheckedChange={(v) => set({ free: v === true, sell_clone: v === true ? false : form.sell_clone })} /> 무료 공유</span>
-        <span className="text-muted mt-1 block text-sm">누구나 무료로 복제할 수 있습니다.</span>
-      </label>
+      <div className={box(form.free)}>
+        <label className="flex items-center gap-2 font-semibold"><Checkbox checked={form.free} onCheckedChange={(v) => set({ free: v === true, sell_clone: v === true ? false : form.sell_clone })} /> 무료 공유</label>
+        <p className="text-muted mt-1 text-sm">누구나 무료로 복제할 수 있습니다.</p>
+      </div>
       <div className={box(form.sell_clone)}>
         <label className="flex items-center gap-2 font-semibold"><Checkbox checked={form.sell_clone} disabled={form.free} onCheckedChange={(v) => set({ sell_clone: v === true })} /> 복제 라이선스 판매</label>
-        <p className="text-muted mt-1 text-sm">구매자가 에이전트와 연결된 워크플로를 복제해 수정할 수 있습니다. 재판매는 불가합니다.</p>
-        {form.sell_clone ? <div className="mt-3 max-w-60 space-y-1"><Label htmlFor="price-clone">가격(원)</Label><Input id="price-clone" type="number" min={0} step={1000} value={form.price_clone_krw} onChange={(e) => set({ price_clone_krw: Number(e.target.value) })} /></div> : null}
+        <p className="text-muted mt-1 text-sm">구매자가 에이전트와 연결된 워크플로를 복제해 수정할 수 있습니다. 재판매 금지.</p>
+        {form.sell_clone ? <div className="mt-3 max-w-60 space-y-1"><Label htmlFor="price-clone">가격 (1회, 원)</Label><Input id="price-clone" type="number" min={0} step={1000} value={form.price_clone_krw} onChange={(e) => set({ price_clone_krw: Number(e.target.value) })} /></div> : null}
       </div>
       <div className={box(form.sell_api)}>
         <label className="flex items-center gap-2 font-semibold"><Checkbox checked={form.sell_api} disabled={!canApi} onCheckedChange={(v) => set({ sell_api: v === true })} /> API 사용 구독</label>
-        <p className="text-muted mt-1 text-sm">내 환경에서 실행하고 구매자는 호출만 합니다. 모델 · 프롬프트는 공개되지 않습니다.{!canApi ? ' (먼저 이 에이전트를 배포해야 고를 수 있어요)' : ''}</p>
-        {form.sell_api ? <div className="mt-3 max-w-60 space-y-1"><Label htmlFor="price-api">월 가격(원)</Label><Input id="price-api" type="number" min={0} step={1000} value={form.price_api_month_krw} onChange={(e) => set({ price_api_month_krw: Number(e.target.value) })} /></div> : null}
+        <p className="text-muted mt-1 text-sm">내 환경에서 실행하고 구매자는 호출만 합니다. 모델 · 프롬프트 · 워크플로 구성은 공개되지 않습니다.{!canApi ? ' (먼저 이 에이전트를 배포해야 고를 수 있어요)' : ''}</p>
+        {form.sell_api ? <div className="mt-3 max-w-60 space-y-1"><Label htmlFor="price-api">월 구독료(원)</Label><Input id="price-api" type="number" min={0} step={1000} value={form.price_api_month_krw} onChange={(e) => set({ price_api_month_krw: Number(e.target.value) })} /></div> : null}
       </div>
       <Err m={errors.free} />
-      <p className="text-muted text-xs">플랫폼 수수료 20% · 정산은 매월 10일 · 7일 이내 실행 이력이 없으면 환불됩니다.</p>
+      <p className="text-muted text-xs">플랫폼 수수료 20% · 정산은 매월 10일 · 실행 비용은 API 구독일 때 판매자 부담</p>
     </div>
   );
 }

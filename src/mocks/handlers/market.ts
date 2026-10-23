@@ -15,6 +15,7 @@ const SECRET_RULES: [string, RegExp][] = [
   ['slack_token', /xox[baprs]-[A-Za-z0-9-]{10,}/],
 ];
 const INTERNAL_HOST = /(localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+)/;
+const PII = [/01[016789]-?\d{3,4}-?\d{4}/, /[\w.+-]+@[\w-]+\.[\w.]+/];
 
 /** PublishSanitizer.scan (design.md 2.4.3) */
 export function scanBundle(defn: unknown): ScanFinding[] {
@@ -35,6 +36,10 @@ export function scanBundle(defn: unknown): ScanFinding[] {
         if (m) findings.push({ path, rule, severity: 'error', excerpt: `${m[0].slice(0, 6)}••••${m[0].slice(-3)}` });
       }
       if (INTERNAL_HOST.test(node)) findings.push({ path, rule: 'internal_url', severity: 'warn', excerpt: node.slice(0, 60) });
+      for (const rx of PII) {
+        const m = rx.exec(node);
+        if (m) findings.push({ path, rule: 'pii', severity: 'info', excerpt: `${m[0].slice(0, 3)}••• (게시본에서 가림)` });
+      }
     }
   };
   walk(defn, '$');
@@ -72,12 +77,16 @@ export const marketHandlers = [
     const category = sp.get('category');
     const kind = sp.get('kind');
     const license = sp.get('license');
+    const price = sp.get('price');
     let items = db.market_products.filter((p) => p.status === 'published').map((p) => productView(p, ctx.wsId));
     if (q) items = items.filter((p) => `${p.title} ${p.summary} ${p.tags.join(' ')}`.toLowerCase().includes(q));
     if (category) items = items.filter((p) => p.category === category);
     if (kind) items = items.filter((p) => p.kind === kind);
-    if (license === 'free') items = items.filter((p) => p.price_clone_krw === 0);
-    else if (license) items = items.filter((p) => p.license_types.includes(license as 'clone'));
+    if (price === 'free') items = items.filter((p) => p.price_clone_krw === 0);
+    if (price === 'paid') items = items.filter((p) => p.price_clone_krw !== 0 || p.license_types.includes('api_sub'));
+    if (license === 'clone') items = items.filter((p) => p.license_types.includes('clone') && p.price_clone_krw !== 0);
+    if (license === 'free_share') items = items.filter((p) => p.price_clone_krw === 0);
+    if (license === 'api_sub') items = items.filter((p) => p.license_types.includes('api_sub'));
     return json(paginate(sortProducts(items, sp.get('sort') ?? 'popular'), url, 24));
   }),
   http.get(`${API}/market/products/:id`, ({ request, params }) => {
