@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { useMyProducts, useSalesStats } from '@/entities/product';
 import { useCurrentWorkspace } from '@/entities/workspace';
-import { Stars } from '@/features/market';
+import { Stars } from '@/features/market/rating';
 import { useSearchState } from '@/shared/hooks/use-search-state';
 import { copy } from '@/shared/lib/copy';
 import { formatKrw, formatNumber, relativeTime } from '@/shared/lib/format';

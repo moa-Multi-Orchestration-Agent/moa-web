@@ -7,7 +7,7 @@ import { useIssueKey } from '@/entities/api-key';
 import { invokeEndpoint, useOpenApi, useRedeliver, useWebhookDeliveries, type Endpoint, type InvokeResult } from '@/entities/endpoint';
 import { exampleFromSchema } from '@/entities/workflow';
 import { useCurrentWorkspace } from '@/entities/workspace';
-import { codeSamples } from '@/features/deploy';
+import { codeSamples } from '@/features/deploy/code-samples';
 import { copy } from '@/shared/lib/copy';
 import { formatDateTime } from '@/shared/lib/format';
 import { cn } from '@/shared/lib/utils';

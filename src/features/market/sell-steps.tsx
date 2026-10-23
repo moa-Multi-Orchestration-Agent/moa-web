@@ -1,6 +1,6 @@
 'use client';
 
-import ReactMarkdown from 'react-markdown';
+import { Markdown as ReactMarkdown } from '@/shared/ui/markdown';
 import { AlertCircle, AlertTriangle, Info, Loader2 } from 'lucide-react';
 import type { Agent } from '@/entities/agent';
 import { MARKET_CATEGORIES, type ListingForm, type ScanFinding } from '@/entities/product';

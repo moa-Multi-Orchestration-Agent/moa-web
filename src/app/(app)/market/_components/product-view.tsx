@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import ReactMarkdown from 'react-markdown';
+import { Markdown as ReactMarkdown } from '@/shared/ui/markdown';
 import { CheckCircle2, CircleDashed, XCircle } from 'lucide-react';
 import { LICENSE_LABEL, marketCategoryLabel, useProduct, useReviews, type LicenseType } from '@/entities/product';
 import { useCurrentWorkspace } from '@/entities/workspace';
-import { PurchaseDialog, RatingBars, Stars } from '@/features/market';
+import { PurchaseDialog } from '@/features/market/purchase-dialog';
+import { RatingBars, Stars } from '@/features/market/rating';
 import { useSearchState } from '@/shared/hooks/use-search-state';
 import { isApiError } from '@/shared/lib/api-client';
 import { copy } from '@/shared/lib/copy';

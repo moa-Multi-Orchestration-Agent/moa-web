@@ -16,7 +16,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/shared/ui/switch';
 import { Card } from './config-cards';
 import { ALIAS_RE, aliasFromName, type DraftSkill, type DraftWorkflow } from './draft';
-import { SkillPicker } from './skill-picker';
+import dynamic from 'next/dynamic';
+
+const SkillPicker = dynamic(() => import('./skill-picker').then((m) => m.SkillPicker), { ssr: false });
 
 export function SkillsCard({
   skills,

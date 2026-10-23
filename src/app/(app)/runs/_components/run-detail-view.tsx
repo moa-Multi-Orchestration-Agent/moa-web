@@ -7,7 +7,7 @@ import { AlertTriangle, ArrowLeft, Play, Square, WifiOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { isTerminal, useCancelRun, useRun, useRunEvents } from '@/entities/run';
 import { useCurrentWorkspace } from '@/entities/workspace';
-import { ContextPanel } from '@/features/editor/context-panel';
+import { LazyContextPanel as ContextPanel } from '@/features/editor/context-panel/lazy';
 import { isApiError } from '@/shared/lib/api-client';
 import { copy } from '@/shared/lib/copy';
 import { describeError } from '@/shared/lib/error-codes';

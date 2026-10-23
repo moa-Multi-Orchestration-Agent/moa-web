@@ -8,24 +8,15 @@ import { useAgent } from '@/entities/agent';
 import { useAgentSessions, useContextSession } from '@/entities/context';
 import { useEndpoints } from '@/entities/endpoint';
 import { useCurrentWorkspace } from '@/entities/workspace';
-import {
-  AgentDeployTab,
-  AgentLogsTab,
-  ALIAS_RE,
-  BasicCard,
-  BuilderHeader,
-  ChatPanel,
-  MemoryCard,
-  ModelCard,
-  PromptCard,
-  SkillsCard,
-  useAgentChat,
-  useAgentDraft,
-  useSaveAgent,
-  WorkflowsCard,
-  type BuilderTab,
-} from '@/features/agent-builder';
-import { ContextPanel, SnapshotControls } from '@/features/editor/context-panel';
+import { AgentDeployTab, AgentLogsTab } from '@/features/agent-builder/side-tabs';
+import { ALIAS_RE, useAgentDraft, useSaveAgent } from '@/features/agent-builder/draft';
+import { BasicCard, MemoryCard, ModelCard, PromptCard } from '@/features/agent-builder/config-cards';
+import { BuilderHeader, type BuilderTab } from '@/features/agent-builder/builder-header';
+import { ChatPanel } from '@/features/agent-builder/chat-panel';
+import { SkillsCard, WorkflowsCard } from '@/features/agent-builder/skills-workflows';
+import { useAgentChat } from '@/features/agent-builder/use-agent-chat';
+import { SnapshotControls } from '@/features/editor/context-panel';
+import { LazyContextPanel as ContextPanel } from '@/features/editor/context-panel/lazy';
 import { useLeaveGuard } from '@/shared/hooks/use-leave-guard';
 import { useSearchState } from '@/shared/hooks/use-search-state';
 import { isApiError } from '@/shared/lib/api-client';

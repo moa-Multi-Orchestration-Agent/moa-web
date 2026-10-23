@@ -2,7 +2,7 @@
 
 import { Lock } from 'lucide-react';
 import { useCurrentWorkspace } from '@/entities/workspace';
-import { ApiKeysCard } from '@/features/deploy';
+import { ApiKeysCard } from '@/features/deploy/api-keys-card';
 import { useSearchState } from '@/shared/hooks/use-search-state';
 import { LineTabs } from '@/shared/ui/line-tabs';
 import { PageContainer, PageHeader, SectionCard } from '@/shared/ui/page-header';

@@ -3,7 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import { Lock } from 'lucide-react';
 import { useCurrentWorkspace } from '@/entities/workspace';
-import { SellWizard } from '@/features/market';
+import { SellWizard } from '@/features/market/sell-wizard';
 import { copy } from '@/shared/lib/copy';
 import { PageContainer, PageHeader } from '@/shared/ui/page-header';
 import { EmptyState } from '@/shared/ui/states';

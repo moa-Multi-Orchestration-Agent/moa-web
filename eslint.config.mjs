@@ -39,7 +39,7 @@ const layers = {
 };
 
 const config = [
-  { ignores: ['commitlint.config.mjs', '.next/**', 'node_modules/**', 'public/mockServiceWorker.js', 'playwright-report/**', 'test-results/**', 'next-env.d.ts', 'docs/**'] },
+  { ignores: ['commitlint.config.mjs', '.next/**', '.next-*/**', 'node_modules/**', 'public/mockServiceWorker.js', 'playwright-report/**', 'test-results/**', 'next-env.d.ts', 'docs/**'] },
   ...compat.extends('next/core-web-vitals', 'next/typescript'),
   layers,
   {

@@ -50,7 +50,7 @@ export function CommandPalette({
   };
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange} title="커맨드 팔레트" description="화면 이동, 검색, 명령 실행">
+    <CommandDialog open={open} onOpenChange={onOpenChange} title="커맨드 팔레트" description="화면 이동, 검색, 명령 실행" shouldFilter={!query.startsWith('/')}>
       <CommandInput placeholder="이동할 화면, 에이전트·워크플로 이름, /명령 …" value={query} onValueChange={onQueryChange} />
       <CommandList>
         <CommandEmpty>결과가 없습니다.</CommandEmpty>
@@ -73,6 +73,7 @@ export function CommandPalette({
             </CommandGroup>
           ) : null,
         )}
+        {query.startsWith('/') ? null : (
         <CommandGroup heading="화면 이동">
           {ALL_NAV.map((n) => {
             const Icon = n.icon;
@@ -83,6 +84,7 @@ export function CommandPalette({
             );
           })}
         </CommandGroup>
+        )}
       </CommandList>
     </CommandDialog>
   );

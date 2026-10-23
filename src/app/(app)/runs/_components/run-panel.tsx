@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRun, useRunEvents, isTerminal } from '@/entities/run';
-import { ContextPanel } from '@/features/editor/context-panel';
+import { LazyContextPanel as ContextPanel } from '@/features/editor/context-panel/lazy';
 import { copy } from '@/shared/lib/copy';
 import { formatTime } from '@/shared/lib/format';
 import { Button } from '@/shared/ui/button';

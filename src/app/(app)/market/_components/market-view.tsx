@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Search } from 'lucide-react';
 import { MARKET_CATEGORIES, MARKET_SORTS, useProducts } from '@/entities/product';
 import { useCurrentWorkspace } from '@/entities/workspace';
-import { ProductCard } from '@/features/market';
+import { ProductCard } from '@/features/market/product-card';
 import { useDebounced } from '@/shared/hooks/use-debounced';
 import { useInView } from '@/shared/hooks/use-in-view';
 import { useSearchState } from '@/shared/hooks/use-search-state';

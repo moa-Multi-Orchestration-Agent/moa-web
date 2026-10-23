@@ -122,4 +122,9 @@
   --xy-controls-button-background-color: var(--background);
   --xy-controls-button-color: var(--foreground);
   --xy-controls-button-border-color: var(--border);
+  --xy-minimap-mask-background-color: color-mix(in srgb, var(--surface-strong) 70%, transparent);
+  --xy-minimap-node-stroke-color: var(--border);
+  --xy-edge-label-background-color: var(--background);
+  --xy-edge-label-color: var(--foreground);
+  --xy-node-background-color: var(--background);
 }

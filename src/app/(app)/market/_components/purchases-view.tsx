@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useLicenses } from '@/entities/license';
 import { LICENSE_LABEL } from '@/entities/product';
-import { ReviewDialog } from '@/features/market';
+import { ReviewDialog } from '@/features/market/review-dialog';
 import { formatDate, formatKrw } from '@/shared/lib/format';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
