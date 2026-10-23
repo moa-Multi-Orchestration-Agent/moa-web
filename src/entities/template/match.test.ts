@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Template } from '@/entities/template';
-import { nameFromPrompt, pickTemplate } from './draft-from-prompt';
+import type { Template } from './model';
+import { nameFromPrompt, pickTemplate } from './match';
 
 const t = (name: string, kind: 'agent' | 'workflow', summary = ''): Template =>
   ({ id: name, name, kind, summary, skills: [], category: 'x', difficulty: 'easy', icon: '', nodeCount: 3, trigger: 'api', model: null, requiredConnections: [], official: true }) as Template;

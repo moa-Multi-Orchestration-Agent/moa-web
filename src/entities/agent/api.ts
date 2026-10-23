@@ -22,7 +22,7 @@ export type AgentDetail = ReturnType<typeof toAgentDetail>;
 
 export async function fetchAgents(p: AgentListParams & { cursor?: string | null }) {
   const r = await api.get<Page<unknown>>('/agents', { query: { ...p, cursor: p.cursor ?? undefined, limit: p.limit ?? 12 } });
-  return { items: agentRowSchema.array().parse(r.items), next_cursor: r.next_cursor };
+  return { items: agentRowSchema.array().parse(r.items), next_cursor: r.next_cursor, total: r.total };
 }
 
 export function useAgents(p: AgentListParams = {}) {
@@ -32,7 +32,7 @@ export function useAgents(p: AgentListParams = {}) {
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.next_cursor,
   });
-  return { ...q, items: flattenPages(q.data).map(toAgent) };
+  return { ...q, items: flattenPages(q.data).map(toAgent), total: q.data?.pages[0]?.total ?? null };
 }
 
 export function useAgent(id: string | null | undefined) {

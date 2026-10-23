@@ -141,7 +141,7 @@ export function paginate<T>(items: T[], url: URL, defaultLimit = 20) {
   const offset = cursor ? Number(atob(cursor)) || 0 : 0;
   const page = items.slice(offset, offset + limit);
   const next = offset + limit < items.length ? btoa(String(offset + limit)) : null;
-  return { items: page, next_cursor: next };
+  return { items: page, next_cursor: next, total: items.length };
 }
 
 export async function body<T = Record<string, unknown>>(request: Request): Promise<T> {

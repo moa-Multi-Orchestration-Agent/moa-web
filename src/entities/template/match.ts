@@ -1,4 +1,4 @@
-import type { Template } from '@/entities/template';
+import type { Template } from './model';
 
 /**
  * "설명으로 초안 만들기"(frontend-plan D4): 설계서에 자연어 → 초안 API가 없어,

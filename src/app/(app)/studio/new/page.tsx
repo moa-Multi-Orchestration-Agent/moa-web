@@ -1,13 +1,14 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { copy } from '@/shared/lib/copy';
-import { PageContainer, PageHeader } from '@/shared/ui/page-header';
+import { NewView } from './_components/new-view';
 
 export const metadata: Metadata = { title: copy.pages.studioNew };
 
-export default function Page() {
+export default function StudioNewPage() {
   return (
-    <PageContainer>
-      <PageHeader title={copy.pages.studioNew} />
-    </PageContainer>
+    <Suspense>
+      <NewView />
+    </Suspense>
   );
 }

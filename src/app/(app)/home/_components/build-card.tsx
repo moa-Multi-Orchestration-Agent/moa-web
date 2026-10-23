@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCreateAgent } from '@/entities/agent';
-import { useInstantiateTemplate, useTemplates } from '@/entities/template';
 import { useCreateWorkflow } from '@/entities/workflow';
 import { useCurrentWorkspace } from '@/entities/workspace';
 import { copy } from '@/shared/lib/copy';
@@ -14,7 +13,7 @@ import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { Guarded } from '@/shared/ui/guarded';
 import { Textarea } from '@/shared/ui/textarea';
-import { nameFromPrompt, pickTemplate } from './draft-from-prompt';
+import { nameFromPrompt, pickTemplate, useInstantiateTemplate, useTemplates } from '@/entities/template';
 
 type Kind = 'agent' | 'workflow';
 

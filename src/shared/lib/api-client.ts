@@ -158,4 +158,6 @@ export const api = {
 export interface Page<T> {
   items: T[];
   next_cursor: string | null;
+  /** 목 API 확장: 전체 개수(탭 숫자 표시용) */
+  total?: number;
 }

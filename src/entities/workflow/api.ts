@@ -40,7 +40,7 @@ export type WorkflowDetail = ReturnType<typeof toWorkflowDetail>;
 
 export async function fetchWorkflows(p: WorkflowListParams & { cursor?: string | null }) {
   const r = await api.get<Page<unknown>>('/workflows', { query: { ...p, cursor: p.cursor ?? undefined, limit: p.limit ?? 20 } });
-  return { items: workflowRowSchema.array().parse(r.items), next_cursor: r.next_cursor };
+  return { items: workflowRowSchema.array().parse(r.items), next_cursor: r.next_cursor, total: r.total };
 }
 
 export function useWorkflows(p: WorkflowListParams = {}) {
@@ -50,7 +50,7 @@ export function useWorkflows(p: WorkflowListParams = {}) {
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.next_cursor,
   });
-  return { ...q, items: flattenPages(q.data).map(toWorkflow) };
+  return { ...q, items: flattenPages(q.data).map(toWorkflow), total: q.data?.pages[0]?.total ?? null };
 }
 
 export async function fetchWorkflow(id: string) {
