@@ -79,7 +79,7 @@ export const reviewRowSchema = z
   .object({
     id: z.string(),
     product_id: z.string(),
-    license_id: z.string(),
+    license_id: z.string().nullable(),
     author: z.string(),
     rating: z.number(),
     body: z.string().nullable(),

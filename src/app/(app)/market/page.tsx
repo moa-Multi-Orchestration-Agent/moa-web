@@ -1,13 +1,14 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { copy } from '@/shared/lib/copy';
-import { PageContainer, PageHeader } from '@/shared/ui/page-header';
+import { MarketView } from './_components/market-view';
 
 export const metadata: Metadata = { title: copy.pages.market };
 
-export default function Page() {
+export default function MarketPage() {
   return (
-    <PageContainer>
-      <PageHeader title={copy.pages.market} />
-    </PageContainer>
+    <Suspense>
+      <MarketView />
+    </Suspense>
   );
 }
