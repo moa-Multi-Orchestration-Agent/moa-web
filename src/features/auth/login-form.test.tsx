@@ -17,10 +17,9 @@ describe('LoginForm', () => {
     setLocation('/login');
     renderWithQuery(<LoginForm />);
     await userEvent.type(screen.getByLabelText('이메일'), 'not-an-email');
-    await userEvent.type(screen.getByLabelText('비밀번호'), '123');
     await userEvent.click(screen.getByRole('button', { name: '로그인' }));
     expect(await screen.findByText('이메일 형식이 아닙니다.')).toBeInTheDocument();
-    expect(screen.getByText('비밀번호는 8자 이상입니다.')).toBeInTheDocument();
+    expect(screen.getByText('비밀번호를 입력하세요.')).toBeInTheDocument();
   });
 
   it('서버 오류(401)를 보여 준다', async () => {
