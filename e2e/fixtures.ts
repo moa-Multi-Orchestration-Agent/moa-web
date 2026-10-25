@@ -7,6 +7,10 @@ export const IDS = {
 };
 
 /** 앱이 목 API와 함께 뜰 때까지 기다린다(MSW 준비 → 세션 확인) */
+/** 실제 백엔드 모드(E2E_REAL=1)는 시드 데모 계정, 목 모드는 아무 계정이나 된다. */
+export const REAL = process.env.E2E_REAL === '1';
+export const E2E_USER = REAL ? { email: 'demo@moa.dev', password: 'moa1234' } : { email: 'e2e@moa.dev', password: 'password123' };
+
 export async function ready(page: Page) {
   await expect(page.getByText('목 API를 준비하는 중…')).toHaveCount(0, { timeout: 30_000 });
 }

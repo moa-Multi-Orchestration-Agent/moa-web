@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { IDS, openEditor, ready, runFromEditor } from './fixtures';
+import { E2E_USER, IDS, openEditor, ready, runFromEditor } from './fixtures';
 
 test('1) 로그인 → 템플릿 선택 → 노드 추가 → 테스트 실행 → 성공', async ({ page }) => {
+  await page.context().clearCookies();
   await page.goto('/login');
   await ready(page);
-  await page.getByLabel('이메일').fill('e2e@moa.dev');
-  await page.getByLabel('비밀번호').fill('password123');
+  await page.getByLabel('이메일').fill(E2E_USER.email);
+  await page.getByLabel('비밀번호').fill(E2E_USER.password);
   await page.getByRole('button', { name: '로그인', exact: true }).click();
   await expect(page).toHaveURL(/\/home/);
 
