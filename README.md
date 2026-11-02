@@ -41,8 +41,10 @@ git clone https://github.com/moa-team/moa-web.git
 cd moa-web
 cp .env.example .env.local
 pnpm install
-pnpm dev            # http://localhost:3000 (기본: 목 API 모드)
+pnpm dev            # http://localhost:3000 (항상 목 API 모드)
 ```
+
+실제 백엔드(`moa-backend`, `uv run moa`)에 붙이려면 `pnpm dev:backend`로 띄웁니다. `/api/*`·`/a/*` 요청을 `MOA_BACKEND_URL`(기본 `http://localhost:8000`)로 프록시하고, 데모 계정은 `demo@moa.dev` / `moa1234`입니다.
 
 ### 환경 변수
 
@@ -50,17 +52,21 @@ pnpm dev            # http://localhost:3000 (기본: 목 API 모드)
 |---|---|---|
 | `NEXT_PUBLIC_API_MOCKING` | `enabled` | `enabled`면 MSW 목 API 사용, 비우면 실제 백엔드 호출 |
 | `NEXT_PUBLIC_API_BASE_URL` | `/api/v1` | 실제 백엔드 주소 |
+| `MOA_BACKEND_URL` | `http://localhost:8000` | 목을 끄면 `/api/*`·`/a/*`를 프록시할 백엔드 주소 |
+| `NEXT_PUBLIC_PUBLIC_API_ORIGIN` | `https://api.moa.dev` | 화면에 보이는 배포 API 주소(백엔드 `MOA_PUBLIC_API_ORIGIN`과 맞춤) |
 
 ### 스크립트
 
 | 명령 | 설명 |
 |---|---|
-| `pnpm dev` | 개발 서버 |
+| `pnpm dev` | 개발 서버(목 API 모드, `.env.local` 값과 무관) |
+| `pnpm dev:backend` | 개발 서버(실제 백엔드에 연결) |
 | `pnpm build && pnpm start` | 프로덕션 빌드 실행 |
 | `pnpm typecheck` | 타입 검사 |
 | `pnpm lint` | ESLint(의존 방향 규칙 포함) |
 | `pnpm test` | 단위 테스트(Vitest) |
 | `pnpm test:e2e` | E2E 테스트(Playwright, 목 API 모드) |
+| `E2E_REAL=1 pnpm test:e2e` | E2E 테스트(실제 백엔드를 함께 띄워 실행) |
 
 > 목 데이터는 메모리에만 있습니다. 화면 이동 중에는 만든 데이터가 유지되고, 새로고침하면 시드 데이터로 돌아갑니다.
 
