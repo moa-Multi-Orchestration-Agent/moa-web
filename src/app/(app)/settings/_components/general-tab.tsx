@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 import { billingFormSchema, useBilling, useUpdateBilling, type BillingForm } from '@/entities/budget';
+import { PUBLIC_API_ORIGIN } from '@/entities/endpoint';
 import { useCurrentWorkspace, useUpdateWorkspace, workspaceFormSchema, type WorkspaceForm } from '@/entities/workspace';
 import { copy } from '@/shared/lib/copy';
 import { Button } from '@/shared/ui/button';
@@ -38,7 +39,7 @@ export function GeneralTab() {
       <SectionCard title="워크스페이스">
         <form onSubmit={(e) => { e.preventDefault(); save(); }} className="space-y-4">
           <div className="space-y-1.5"><Label htmlFor="ws-name">이름</Label><Input id="ws-name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} disabled={disabled} aria-invalid={!!errors.name} />{errors.name ? <p className="text-danger text-xs">{errors.name}</p> : null}</div>
-          <div className="space-y-1.5"><Label htmlFor="ws-slug">slug (배포 주소에 쓰임)</Label><Input id="ws-slug" value={form.slug} onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value.toLowerCase() }))} disabled={disabled} className="font-mono" aria-invalid={!!errors.slug} /><p className={errors.slug ? 'text-danger text-xs' : 'text-muted text-xs'}>{errors.slug ?? `https://api.moa.dev/a/${form.slug}/…  바꾸면 기존 배포 주소도 바뀝니다.`}</p></div>
+          <div className="space-y-1.5"><Label htmlFor="ws-slug">slug (배포 주소에 쓰임)</Label><Input id="ws-slug" value={form.slug} onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value.toLowerCase() }))} disabled={disabled} className="font-mono" aria-invalid={!!errors.slug} /><p className={errors.slug ? 'text-danger text-xs' : 'text-muted text-xs'}>{errors.slug ?? `${PUBLIC_API_ORIGIN}/a/${form.slug}/…  바꾸면 기존 배포 주소도 바뀝니다.`}</p></div>
           <div className="space-y-2">
             <div className="flex justify-between"><Label id="ws-th">컨텍스트 압축 임계치</Label><span className="font-mono text-sm">{Math.round(form.compress_threshold * 100)}%</span></div>
             <Slider aria-labelledby="ws-th" min={30} max={95} step={5} value={[Math.round(form.compress_threshold * 100)]} onValueChange={([v]) => setForm((f) => ({ ...f, compress_threshold: (v ?? 70) / 100 }))} disabled={disabled} />

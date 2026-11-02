@@ -8,6 +8,8 @@
   },
   "scripts": {
     "dev": "next dev",
+    "dev:mock": "NEXT_PUBLIC_API_MOCKING=enabled next dev",
+    "dev:backend": "NEXT_PUBLIC_API_MOCKING= next dev",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
