@@ -145,3 +145,22 @@ export function useCreateVersion(id: string) {
 export function useNodeCatalog() {
   return useQuery({ queryKey: workflowKeys.catalog, queryFn: async () => nodeCatalogSchema.parse(await api.get('/node-catalog')), staleTime: Infinity });
 }
+
+// ===== 워크플로 파일 내보내기·가져오기(Dify DSL과 같은 역할) =====
+export interface WorkflowExport {
+  kind: 'moa.workflow';
+  version: number;
+  exported_at: string;
+  workflow: { name: string; description: string | null; draft: { nodes: unknown[]; edges: unknown[] } };
+  notes: string[];
+}
+
+export const exportWorkflow = (id: string) => api.get<WorkflowExport>(`/workflows/${id}/export`);
+
+export function useImportWorkflow() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: unknown) => api.post<WorkflowDetailRow & { import_notes?: string[] }>('/workflows/import', file),
+    onSuccess: () => qc.invalidateQueries({ queryKey: workflowKeys.all }),
+  });
+}

@@ -59,7 +59,7 @@ export function CredentialsCard({ modelKeysOnly }: { modelKeysOnly?: boolean }) 
                 <TableCell>{providerInfo(c.provider)?.kind ?? c.provider}</TableCell>
                 <TableCell className="font-mono text-xs">{c.masked}</TableCell>
                 <TableCell className="text-muted">{c.usedBy.join(' · ') || '없음'}</TableCell>
-                <TableCell>{soon(c.expiresAt) ? <Badge variant="orange">만료 {formatDate(c.expiresAt)}</Badge> : <Badge variant="gray">암호화 저장</Badge>}</TableCell>
+                <TableCell>{c.isDemo ? <Badge variant="orange">보기용 시드 키</Badge> : soon(c.expiresAt) ? <Badge variant="orange">만료 {formatDate(c.expiresAt)}</Badge> : <Badge variant="gray">암호화 저장</Badge>}</TableCell>
                 <TableCell><Guarded allowed={can('manageKeys')} reason={copy.common.adminOnly}><Button size="icon-sm" variant="ghost" onClick={() => setDeleting({ id: c.id, label: c.label })} aria-label={`${c.label} 삭제`}><Trash2 aria-hidden /></Button></Guarded></TableCell>
               </TableRow>
             ))}

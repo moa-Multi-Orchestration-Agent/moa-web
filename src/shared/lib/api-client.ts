@@ -107,7 +107,11 @@ export async function request<T>(method: string, path: string, opts: RequestOpti
   if (currentWorkspaceId) headers['X-Workspace-Id'] = currentWorkspaceId;
   if (opts.ifMatch !== undefined) headers['If-Match'] = String(opts.ifMatch);
   let body: BodyInit | undefined;
-  if (opts.body !== undefined) {
+  if (typeof Blob !== 'undefined' && opts.body instanceof Blob) {
+    // 파일 업로드: 원본 바이트를 그대로 보낸다
+    headers['Content-Type'] = opts.body.type || 'application/octet-stream';
+    body = opts.body;
+  } else if (opts.body !== undefined) {
     headers['Content-Type'] = 'application/json';
     body = JSON.stringify(opts.body);
   }

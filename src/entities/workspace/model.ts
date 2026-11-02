@@ -76,3 +76,7 @@ export const inviteFormSchema = z.object({
   role: z.enum(['admin', 'maker', 'viewer']),
 });
 export type InviteForm = z.infer<typeof inviteFormSchema>;
+
+export const createWorkspaceSchema = z.object({
+  name: z.string().trim().min(1, '팀 이름을 입력하세요.').max(40, '40자 이하로 입력하세요.'),
+});

@@ -1,7 +1,9 @@
 'use client';
 
-import { ChevronDown } from 'lucide-react';
+import Link from 'next/link';
+import { AlertTriangle, CheckCircle2, ChevronDown } from 'lucide-react';
 import { AGENT_ICONS, MODELS, modelLabel, type AgentForm } from '@/entities/agent';
+import { DEFAULT_KEY, modelKeyInfo, useModels } from '@/entities/credential';
 import { copy } from '@/shared/lib/copy';
 import { estimateTokens } from '@/shared/lib/format';
 import { cn } from '@/shared/lib/utils';
@@ -79,7 +81,7 @@ export function ModelCard({ form, setForm, disabled }: Props) {
       <div className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="agent-model">{copy.builder.baseModel}</Label>
-          <Select value={form.model} onValueChange={(v) => setForm({ model: v, fallback_models: form.fallback_models.filter((x) => x !== v) })} disabled={disabled}>
+          <Select value={form.model} onValueChange={(v) => setForm({ model: v, fallback_models: form.fallback_models.filter((x) => x !== v), credential_id: null })} disabled={disabled}>
             <SelectTrigger id="agent-model" className="w-full">
               <SelectValue />
             </SelectTrigger>
@@ -92,6 +94,7 @@ export function ModelCard({ form, setForm, disabled }: Props) {
             </SelectContent>
           </Select>
         </div>
+        <AgentKeyField model={form.model} credentialId={form.credential_id ?? null} onChange={(id) => setForm({ credential_id: id })} disabled={disabled} />
         <div className="space-y-1.5">
           <Label id="fallback-label">{copy.builder.fallback}</Label>
           <Popover>
@@ -169,5 +172,41 @@ export function MemoryCard({ form, setForm, disabled, threshold }: Props & { thr
         <p className="text-muted mt-0.5 text-xs">{copy.builder.thresholdHint}</p>
       </div>
     </Card>
+  );
+}
+
+/** 이 에이전트가 쓸 API 키. 고르지 않으면 워크스페이스 기본 키를 쓴다. */
+function AgentKeyField({ model, credentialId, onChange, disabled }: { model: string; credentialId: string | null; onChange: (id: string | null) => void; disabled?: boolean }) {
+  const models = useModels();
+  const info = modelKeyInfo(models.data?.items, model, credentialId);
+  if (!info) return null;
+  const Icon = info.tone === 'ok' ? CheckCircle2 : AlertTriangle;
+  return (
+    <div className="space-y-1.5">
+      {info.model.keyable ? (
+        <>
+          <Label htmlFor="agent-key">API 키</Label>
+          <Select value={info.value} onValueChange={(v) => onChange(v === DEFAULT_KEY ? null : v)} disabled={disabled}>
+            <SelectTrigger id="agent-key" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {info.options.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </>
+      ) : null}
+      <p className={cn('flex items-start gap-1.5 text-xs', info.tone === 'ok' ? 'text-success' : info.tone === 'warn' ? 'text-warning' : 'text-danger')}>
+        <Icon className="mt-px size-3.5 shrink-0" aria-hidden />
+        <span>
+          {info.text}{' '}
+          {info.model.keyable && info.tone !== 'ok' ? <Link href="/integrations?tab=model-keys" className="text-primary hover:underline">모델 키 관리</Link> : null}
+        </span>
+      </p>
+    </div>
   );
 }

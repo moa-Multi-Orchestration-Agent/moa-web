@@ -41,6 +41,23 @@ export const authHandlers = [
     db.session.loggedOut = true;
     return json({ ok: true });
   }),
+  http.patch(`${API}/auth/me`, async ({ request }) => {
+    if (!ctxOf(request)) return problem('MOA-AUTH-002');
+    const b = await body<{ display_name?: string }>(request);
+    const name = (b.display_name ?? '').trim();
+    if (!name || name.length > 30) return problem('MOA-VALIDATION', '이름은 1~30자입니다.', { errors: [{ loc: ['body', 'display_name'], msg: 'length' }] });
+    const u = db.users.find((x) => x.id === db.session.userId)!;
+    Object.assign(u, { display_name: name, updated_at: nowIso() });
+    return json({ user: me() });
+  }),
+  http.post(`${API}/auth/password`, async ({ request }) => {
+    if (!ctxOf(request)) return problem('MOA-AUTH-002');
+    const b = await body<{ current_password?: string; new_password?: string }>(request);
+    // 목: 'wrong-password'만 틀린 비밀번호로 본다(로그인 목과 같은 규칙)
+    if (b.current_password === 'wrong-password') return problem('MOA-VALIDATION', '지금 비밀번호가 맞지 않습니다.', { errors: [{ loc: ['body', 'current_password'], msg: 'mismatch' }] }, 400);
+    if ((b.new_password ?? '').length < 8) return problem('MOA-VALIDATION', '새 비밀번호는 8자 이상입니다.', { errors: [{ loc: ['body', 'new_password'], msg: 'min_length' }] });
+    return json({ ok: true });
+  }),
   http.get(`${API}/auth/me`, ({ request }) => {
     if (!ctxOf(request)) return problem('MOA-AUTH-002');
     return json({ user: me() });

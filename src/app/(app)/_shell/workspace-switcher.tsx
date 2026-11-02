@@ -1,7 +1,8 @@
 'use client';
 
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronDown } from 'lucide-react';
+import { useState } from 'react';
+import { Check, ChevronDown, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCurrentWorkspace, useCurrentWorkspaceStore } from '@/entities/workspace';
 import { copy } from '@/shared/lib/copy';
@@ -15,12 +16,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
+import { CreateTeamDialog } from './create-team-dialog';
 
 export function WorkspaceSwitcher() {
   const { workspace, query } = useCurrentWorkspace();
   const setId = useCurrentWorkspaceStore((s) => s.setId);
   const qc = useQueryClient();
   const all = query.data ?? [];
+  const [creating, setCreating] = useState(false);
 
   const switchTo = (id: string, name: string) => {
     if (id === workspace?.id) return;
@@ -31,10 +34,11 @@ export function WorkspaceSwitcher() {
   };
 
   return (
+    <>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="h-[38px] max-w-[220px] font-semibold" aria-label={copy.topbar.switchWorkspace}>
-          <span className="truncate">{workspace?.name ?? copy.topbar.workspace} 워크스페이스</span>
+          <span className="truncate">{workspace ? (/워크스페이스$/.test(workspace.name) ? workspace.name : `${workspace.name} 워크스페이스`) : copy.topbar.workspace}</span>
           <ChevronDown className="opacity-60" aria-hidden />
         </Button>
       </DropdownMenuTrigger>
@@ -48,7 +52,13 @@ export function WorkspaceSwitcher() {
             {w.id === workspace?.id ? <Check className="size-4" aria-label="현재 워크스페이스" /> : <span className="size-4" />}
           </DropdownMenuItem>
         ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => setCreating(true)} data-testid="create-team">
+          <Plus className="size-4" aria-hidden /> {copy.topbar.createTeam}
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    <CreateTeamDialog open={creating} onOpenChange={setCreating} />
+    </>
   );
 }

@@ -13,6 +13,7 @@ import type {
   DbLicense,
   DbMcpServer,
   DbMcpTool,
+  DbNotification,
   DbPurchase,
   DbWebhookDelivery,
   DbWorkflow,
@@ -26,6 +27,7 @@ import { SEED_WORKFLOWS } from './workflows';
 
 export const WS1 = fid('w', 1);
 export const WS2 = fid('w', 2);
+export const WS3 = fid('w', 3);
 export const DEMO_USER = fid('u', 1);
 export const DEMO_EMAIL = 'demo@moa.dev';
 
@@ -43,6 +45,7 @@ export function seed(): Db {
   const workspaces = [
     { id: WS1, slug: 'team-moa', name: 'MOA 팀', plan: 'team', settings: { compress_threshold: 0.7, compress_target: 0.5 }, created_at: at(120 * DAY), updated_at: at(3 * DAY) },
     { id: WS2, slug: 'partner-studio', name: '파트너 스튜디오', plan: 'free', settings: { compress_threshold: 0.7 }, created_at: at(200 * DAY), updated_at: at(20 * DAY) },
+    { id: WS3, slug: 'design-lab', name: '디자인 랩', plan: 'free', settings: { compress_threshold: 0.7 }, created_at: at(10 * DAY), updated_at: at(DAY) },
   ];
   const memberships = [
     { workspace_id: WS1, user_id: DEMO_USER, role: 'owner' as const, created_at: at(120 * DAY), last_seen_at: at(0) },
@@ -51,12 +54,19 @@ export function seed(): Db {
     { workspace_id: WS1, user_id: fid('u', 4), role: 'viewer' as const, created_at: at(30 * DAY), last_seen_at: at(3 * DAY) },
     { workspace_id: WS2, user_id: fid('u', 5), role: 'owner' as const, created_at: at(200 * DAY), last_seen_at: at(2 * HOUR) },
     { workspace_id: WS2, user_id: DEMO_USER, role: 'viewer' as const, created_at: at(40 * DAY), last_seen_at: at(5 * DAY) },
+    { workspace_id: WS3, user_id: fid('u', 5), role: 'owner' as const, created_at: at(10 * DAY), last_seen_at: at(HOUR) },
+    // 알림에서 수락·거절을 바로 해 볼 수 있게 처리 전 초대 하나를 둔다
+    { workspace_id: WS3, user_id: DEMO_USER, role: 'maker' as const, created_at: at(2 * HOUR), last_seen_at: null, invited: true, invited_by: fid('u', 5) },
+  ];
+  const notifications: DbNotification[] = [
+    { id: fid('nt', 1), user_id: DEMO_USER, workspace_id: WS3, kind: 'invite', title: "'디자인 랩' 팀 초대", body: '정하늘님이 제작자 역할로 초대했습니다.', data: { role: 'maker', invited_by: fid('u', 5), inviter_name: '정하늘' }, action_state: 'pending', read_at: null, created_at: at(2 * HOUR) },
+    { id: fid('nt', 2), user_id: DEMO_USER, workspace_id: WS1, kind: 'invite_result', title: "최유나님이 'MOA 팀' 초대를 수락했습니다", body: '', data: { user_id: fid('u', 4), accepted: true }, action_state: null, read_at: at(20 * DAY), created_at: at(30 * DAY) },
   ];
 
   // ===== 연동 =====
   const credentials = [
     { id: fid('cr', 1), workspace_id: WS1, provider: 'smtp', label: '팀 메일 계정', key_version: 1, purposes: ['mail'], created_by: DEMO_USER, created_at: at(80 * DAY), secret: 'smtp://team%40moa.dev:pa55w0rd-mail@smtp.moa.dev', expires_at: null, used_by: ['AI 뉴스 요약 발송', '고객 문의 응대 에이전트'] },
-    { id: fid('cr', 2), workspace_id: WS1, provider: 'anthropic', label: 'Anthropic API 키', key_version: 1, purposes: ['llm'], created_by: DEMO_USER, created_at: at(110 * DAY), secret: 'sk-ant-api03-demo-3f2a9c1d', expires_at: null, used_by: ['전체 에이전트'] },
+    { id: fid('cr', 2), workspace_id: WS1, provider: 'anthropic', label: 'Anthropic API 키', key_version: 1, purposes: ['llm'], created_by: DEMO_USER, created_at: at(110 * DAY), secret: 'sk-ant-api03-demo-3f2a9c1d', expires_at: null, used_by: ['전체 에이전트'], is_demo: true },
     { id: fid('cr', 3), workspace_id: WS1, provider: 'three_d', label: '3D 생성 엔진 키', key_version: 1, purposes: ['three_d'], created_by: fid('u', 2), created_at: at(60 * DAY), secret: 'td_live_77aa31bc90', expires_at: iso(now + 7 * DAY), used_by: ['컨셉 3D 시각화 파이프라인'] },
   ];
   const mcp_servers: DbMcpServer[] = [
@@ -249,6 +259,7 @@ export function seed(): Db {
     users,
     workspaces,
     memberships,
+    notifications,
     credentials,
     mcp_servers,
     mcp_tools,

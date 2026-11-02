@@ -86,6 +86,7 @@ export function agentView(a: DbAgent): AgentRow {
     fallback_models: a.fallback_models,
     system_prompt: hidden ? '' : a.system_prompt,
     temperature: a.temperature,
+    credential_id: a.credential_id ?? null,
     memory_enabled: a.memory_enabled,
     primary_workflow_id: a.primary_workflow_id,
     created_by: a.created_by,

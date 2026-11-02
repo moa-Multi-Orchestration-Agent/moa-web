@@ -118,7 +118,8 @@ describe('실행 시뮬레이터', () => {
 
 describe('시드 데이터 수량', () => {
   it('prompts.md 2단계 5) 기준', () => {
-    expect(db.workspaces).toHaveLength(2);
+    // 2개 + 알림에서 수락·거절해 볼 초대 예시 팀 1개
+    expect(db.workspaces).toHaveLength(3);
     expect(db.memberships.filter((m) => m.workspace_id === db.workspaces[0]!.id)).toHaveLength(4);
     expect(db.agents.filter((a) => a.workspace_id === db.workspaces[0]!.id)).toHaveLength(6);
     const wfs = db.workflows.filter((w) => w.workspace_id === db.workspaces[0]!.id);

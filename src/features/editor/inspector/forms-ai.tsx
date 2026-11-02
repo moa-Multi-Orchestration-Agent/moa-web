@@ -1,8 +1,10 @@
 'use client';
 
-import { Plus, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { AlertTriangle, CheckCircle2, KeyRound, Plus, Trash2 } from 'lucide-react';
 import { MODELS } from '@/entities/agent';
-import { useKnowledgeBases } from '@/entities/credential';
+import { DEFAULT_KEY, modelKeyInfo, useKnowledgeBases, useModels } from '@/entities/credential';
+import { cn } from '@/shared/lib/utils';
 import { useMcpTools } from '@/entities/mcp';
 import { Button } from '@/shared/ui/button';
 import { Badge } from '@/shared/ui/badge';
@@ -21,11 +23,38 @@ export interface FormProps {
 
 const modelOptions = MODELS.map((m) => ({ value: m.id, label: m.label }));
 
+/** 모델에 쓸 키 고르기 + 실제로 무엇으로 도는지 안내(키 없음이면 데모 응답) */
+export function ModelKeyField({ model, credentialId, onChange, disabled }: { model: string; credentialId: string | null; onChange: (id: string | null) => void; disabled?: boolean }) {
+  const models = useModels();
+  const info = modelKeyInfo(models.data?.items, model, credentialId);
+  if (models.isPending) return <p className="text-muted text-xs">키 정보를 불러오는 중…</p>;
+  if (!info) return null;
+  const Icon = info.tone === 'ok' ? CheckCircle2 : AlertTriangle;
+  return (
+    <div className="space-y-1.5">
+      {info.model.keyable ? (
+        <SelectField label="API 키" value={info.value} onChange={(v) => onChange(v === DEFAULT_KEY ? null : v)} options={info.options} disabled={disabled} />
+      ) : null}
+      <p className={cn('flex items-start gap-1.5 text-[11px]', info.tone === 'ok' ? 'text-success' : info.tone === 'warn' ? 'text-warning' : 'text-danger')} data-testid="model-key-status">
+        <Icon className="mt-px size-3.5 shrink-0" aria-hidden />
+        <span>{info.text}</span>
+      </p>
+      {info.model.keyable && info.tone !== 'ok' ? (
+        <Link href="/integrations?tab=model-keys" className="text-primary inline-flex items-center gap-1 text-[11px] hover:underline">
+          <KeyRound className="size-3" aria-hidden /> 모델 키 관리
+        </Link>
+      ) : null}
+    </div>
+  );
+}
+
 export function LlmForm({ cfg, set, disabled, bindings }: FormProps) {
   const fallbacks = (cfg.fallback_models as string[]) ?? [];
+  const model = String(cfg.model ?? 'claude-sonnet-4');
   return (
     <div className="space-y-3">
-      <SelectField label="모델" value={String(cfg.model ?? 'claude-sonnet-4')} onChange={(v) => set({ model: v })} options={modelOptions} disabled={disabled} />
+      <SelectField label="모델" value={model} onChange={(v) => set({ model: v, credential_id: null })} options={modelOptions} disabled={disabled} />
+      <ModelKeyField model={model} credentialId={(cfg.credential_id as string | null) ?? null} onChange={(id) => set({ credential_id: id })} disabled={disabled} />
       <TemplateInput label="프롬프트 템플릿" value={String(cfg.prompt ?? '')} onChange={(v) => set({ prompt: v })} options={bindings} disabled={disabled} />
       <div className="space-y-1.5">
         <p className="text-muted text-xs">실패 시 대체 모델(순서대로)</p>

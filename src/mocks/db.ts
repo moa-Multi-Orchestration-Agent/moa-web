@@ -35,6 +35,19 @@ export interface DbMembership {
   created_at: string;
   last_seen_at: string | null;
   invited?: boolean;
+  invited_by?: string | null;
+}
+export interface DbNotification {
+  id: string;
+  user_id: string;
+  workspace_id: string | null;
+  kind: 'invite' | 'invite_result' | 'member' | 'system';
+  title: string;
+  body: string;
+  data: Record<string, unknown>;
+  action_state: 'pending' | 'accepted' | 'declined' | 'canceled' | null;
+  read_at: string | null;
+  created_at: string;
 }
 export interface DbCredential {
   id: string;
@@ -48,6 +61,8 @@ export interface DbCredential {
   secret: string;
   expires_at: string | null;
   used_by: string[];
+  /** 시드에 들어 있는 보기용 키(실제 호출에 쓰지 않음) */
+  is_demo?: boolean;
 }
 export interface DbMcpServer {
   id: string;
@@ -109,6 +124,7 @@ export interface DbAgent {
   fallback_models: string[];
   system_prompt: string;
   temperature: number;
+  credential_id?: string | null;
   memory_enabled: boolean;
   primary_workflow_id: string | null;
   created_by: string | null;
@@ -358,6 +374,7 @@ export interface Db {
   users: DbUser[];
   workspaces: DbWorkspace[];
   memberships: DbMembership[];
+  notifications: DbNotification[];
   credentials: DbCredential[];
   mcp_servers: DbMcpServer[];
   mcp_tools: DbMcpTool[];

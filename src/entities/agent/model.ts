@@ -68,6 +68,8 @@ export const agentRowSchema = z
     /** 확장(frontend-plan D7·D28) */
     icon: z.string().nullable().optional(),
     memory_scopes: z.array(z.string()).optional(),
+    /** 이 에이전트가 쓸 모델 키(없으면 워크스페이스 기본 키) */
+    credential_id: z.string().nullable().optional(),
     skill_count: z.number(),
     workflow_count: z.number(),
     skill_names: z.array(z.string()),
@@ -104,6 +106,7 @@ export const agentFormSchema = z.object({
   system_prompt: z.string().max(20_000, '2만 자 이하로 입력하세요.'),
   memory_enabled: z.boolean(),
   memory_scopes: z.array(z.string()),
+  credential_id: z.string().nullable().optional(),
 });
 export type AgentForm = z.infer<typeof agentFormSchema>;
 

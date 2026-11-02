@@ -34,3 +34,16 @@ export const signupInputSchema = loginInputSchema
     path: ['password_confirm'],
   });
 export type SignupInput = z.infer<typeof signupInputSchema>;
+
+export const profileFormSchema = z.object({
+  display_name: z.string().trim().min(1, '이름을 입력하세요.').max(30, '30자 이하로 입력하세요.'),
+});
+
+export const passwordFormSchema = z
+  .object({
+    current_password: z.string().min(1, '지금 비밀번호를 입력하세요.'),
+    new_password: z.string().min(8, '새 비밀번호는 8자 이상입니다.'),
+    new_password_confirm: z.string(),
+  })
+  .refine((v) => v.new_password === v.new_password_confirm, { message: '새 비밀번호가 서로 다릅니다.', path: ['new_password_confirm'] });
+export type PasswordForm = z.infer<typeof passwordFormSchema>;
