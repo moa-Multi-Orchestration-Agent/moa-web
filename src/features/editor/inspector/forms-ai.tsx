@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { AlertTriangle, CheckCircle2, KeyRound, Plus, Trash2 } from 'lucide-react';
-import { MODELS } from '@/entities/agent';
+import { MODELS, modelLabel } from '@/entities/agent';
 import { DEFAULT_KEY, modelKeyInfo, useKnowledgeBases, useModels } from '@/entities/credential';
 import { cn } from '@/shared/lib/utils';
 import { useMcpTools } from '@/entities/mcp';
 import { Button } from '@/shared/ui/button';
 import { Badge } from '@/shared/ui/badge';
+import { ModelParamsFields, ModelPicker } from '@/shared/ui/model-params';
 import type { FlowNode } from '../convert';
 import { CheckField, SelectField, SliderField, TextField } from './fields';
 import { TemplateInput, type BindingOption } from './template-input';
@@ -26,7 +27,7 @@ const modelOptions = MODELS.map((m) => ({ value: m.id, label: m.label }));
 /** 모델에 쓸 키 고르기 + 실제로 무엇으로 도는지 안내(키 없음이면 데모 응답) */
 export function ModelKeyField({ model, credentialId, onChange, disabled }: { model: string; credentialId: string | null; onChange: (id: string | null) => void; disabled?: boolean }) {
   const models = useModels();
-  const info = modelKeyInfo(models.data?.items, model, credentialId);
+  const info = modelKeyInfo(models.data, model, credentialId);
   if (models.isPending) return <p className="text-muted text-xs">키 정보를 불러오는 중…</p>;
   if (!info) return null;
   const Icon = info.tone === 'ok' ? CheckCircle2 : AlertTriangle;
@@ -53,7 +54,7 @@ export function LlmForm({ cfg, set, disabled, bindings }: FormProps) {
   const model = String(cfg.model ?? 'claude-sonnet-4');
   return (
     <div className="space-y-3">
-      <SelectField label="모델" value={model} onChange={(v) => set({ model: v, credential_id: null })} options={modelOptions} disabled={disabled} />
+      <ModelPicker label="모델" value={model} onChange={(v) => set({ model: v, credential_id: null })} presets={modelOptions} disabled={disabled} />
       <ModelKeyField model={model} credentialId={(cfg.credential_id as string | null) ?? null} onChange={(id) => set({ credential_id: id })} disabled={disabled} />
       <TemplateInput label="프롬프트 템플릿" value={String(cfg.prompt ?? '')} onChange={(v) => set({ prompt: v })} options={bindings} disabled={disabled} />
       <div className="space-y-1.5">
@@ -61,7 +62,7 @@ export function LlmForm({ cfg, set, disabled, bindings }: FormProps) {
         {fallbacks.map((m, i) => (
           <div key={`${m}-${i}`} className="flex items-center gap-2">
             <Badge variant="gray">{i + 1}</Badge>
-            <span className="flex-1 text-sm">{MODELS.find((x) => x.id === m)?.label ?? m}</span>
+            <span className="flex-1 truncate text-sm">{modelLabel(m)}</span>
             <Button size="icon-xs" variant="ghost" onClick={() => set({ fallback_models: fallbacks.filter((_, j) => j !== i) })} disabled={disabled} aria-label={`${m} 대체 모델 빼기`}>
               <Trash2 aria-hidden />
             </Button>
@@ -70,6 +71,7 @@ export function LlmForm({ cfg, set, disabled, bindings }: FormProps) {
         <SelectField label="대체 모델 추가" value="" onChange={(v) => set({ fallback_models: [...fallbacks, v] })} options={modelOptions.filter((o) => o.value !== cfg.model && !fallbacks.includes(o.value))} disabled={disabled} placeholder="모델 고르기" />
       </div>
       <SliderField label="온도" value={Number(cfg.temperature ?? 0.7)} onChange={(v) => set({ temperature: v })} min={0} max={2} step={0.1} disabled={disabled} />
+      <ModelParamsFields value={cfg.params as Record<string, unknown> | undefined} onChange={(p) => set({ params: Object.keys(p).length ? p : undefined })} disabled={disabled} />
       {Array.isArray(cfg.labels) ? <TextField label="분류 라벨(쉼표로 구분)" value={(cfg.labels as string[]).join(', ')} onChange={(v) => set({ labels: v.split(',').map((x) => x.trim()).filter(Boolean) })} disabled={disabled} /> : null}
     </div>
   );
