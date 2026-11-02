@@ -11,7 +11,15 @@ export const MODELS = [
   { id: 'llama3.1-8b', label: 'Llama 3.1 8B (Ollama)', family: 'ollama', context: 8_000, price_in: 0, price_out: 0 },
 ] as const;
 export type ModelId = (typeof MODELS)[number]['id'];
-export const modelLabel = (id: string | null | undefined) => MODELS.find((m) => m.id === id)?.label ?? id ?? '—';
+const CUSTOM_LABEL: Record<string, string> = { openai_compatible: 'OpenAI 호환', openai: 'OpenAI', anthropic: 'Anthropic', google: 'Google', ollama: 'Ollama' };
+/** 목록 모델은 이름, 직접 입력한 `계열:모델id`는 "모델id (계열)" */
+export const modelLabel = (id: string | null | undefined) => {
+  const known = MODELS.find((m) => m.id === id)?.label;
+  if (known || !id) return known ?? '—';
+  const i = id.indexOf(':');
+  const fam = i > 0 ? CUSTOM_LABEL[id.slice(0, i)] : undefined;
+  return fam ? `${id.slice(i + 1)} (${fam})` : id;
+};
 
 /** 내장 스킬 (agent_skills.builtin_skill) */
 export const BUILTIN_SKILLS = [
@@ -70,6 +78,8 @@ export const agentRowSchema = z
     memory_scopes: z.array(z.string()).optional(),
     /** 이 에이전트가 쓸 모델 키(없으면 워크스페이스 기본 키) */
     credential_id: z.string().nullable().optional(),
+    /** 생성 파라미터(max_tokens, top_p, stop, response_format …) */
+    model_params: z.record(z.string(), z.unknown()).optional(),
     skill_count: z.number(),
     workflow_count: z.number(),
     skill_names: z.array(z.string()),
@@ -107,6 +117,7 @@ export const agentFormSchema = z.object({
   memory_enabled: z.boolean(),
   memory_scopes: z.array(z.string()),
   credential_id: z.string().nullable().optional(),
+  model_params: z.record(z.string(), z.unknown()).optional(),
 });
 export type AgentForm = z.infer<typeof agentFormSchema>;
 

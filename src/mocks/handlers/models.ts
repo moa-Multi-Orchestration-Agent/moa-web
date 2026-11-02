@@ -7,7 +7,9 @@ import { nowIso, uuid } from '../lib/util';
 import { workflowDetailView } from '../views';
 import { kbView } from './extras';
 
-const KEYED = ['anthropic', 'openai', 'google'];
+const KEYED = ['anthropic', 'openai', 'google', 'openai_compatible'];
+const FAMILY_NAMES: Record<string, string> = { anthropic: 'Anthropic', openai: 'OpenAI', google: 'Google Gemini', openai_compatible: 'OpenAI 호환', ollama: 'Ollama' };
+const API_MODEL: Record<string, string> = { 'claude-sonnet-4': 'claude-sonnet-5-5', 'claude-haiku-4': 'claude-haiku-5-5', 'claude-opus-4': 'claude-opus-5-5' };
 /** 다른 워크스페이스에서는 의미가 없는 참조. 내보내기·가져오기 때 지운다(백엔드와 같은 규칙). */
 const WS_REFS = ['credential_id', 'kb_id', 'kb_name', 'agent_id', 'approvers', 'assignee'];
 
@@ -28,13 +30,15 @@ function modelsOf(wsId: string) {
   const ws = db.workspaces.find((w) => w.id === wsId);
   const defaults = ((ws?.settings as { model_credentials?: Record<string, string> } | undefined)?.model_credentials ?? {}) as Record<string, string>;
   const creds = db.credentials.filter((c) => c.workspace_id === wsId && c.purposes.includes('llm'));
-  const items = MODELS.map((m) => {
-    const keys = creds.filter((c) => c.provider === m.family).map((c) => ({ id: c.id, label: c.label, masked: `${c.secret.slice(0, 4)}••••${c.secret.slice(-4)}`, is_demo: !!c.is_demo }));
-    const source = keys.some((k) => !k.is_demo) ? 'workspace' : 'demo';
-    const def = keys.find((k) => k.id === defaults[m.family])?.id ?? keys[0]?.id ?? null;
-    return { id: m.id, label: m.label, family: m.family, context_window: m.context, price_in: m.price_in, price_out: m.price_out, source, keyable: KEYED.includes(m.family), credentials: keys, default_credential_id: def };
-  });
-  return { items, defaults };
+  const familyInfo = (family: string) => {
+    const keys = creds.filter((c) => c.provider === family).map((c) => ({ id: c.id, label: c.label, masked: c.secret ? `${c.secret.slice(0, 4)}••••${c.secret.slice(-4)}` : '키 없음', is_demo: !!c.is_demo, base_url: c.base_url ?? null }));
+    const source = keys.some((k) => !k.is_demo) ? 'workspace' : family === 'openai_compatible' ? 'missing' : 'demo';
+    const def = keys.find((k) => k.id === defaults[family])?.id ?? keys[0]?.id ?? null;
+    return { source, keyable: KEYED.includes(family), credentials: keys, default_credential_id: def };
+  };
+  const items = MODELS.map((m) => ({ id: m.id, label: m.label, family: m.family, context_window: m.context, price_in: m.price_in, price_out: m.price_out, max_output: m.family === 'ollama' ? 2048 : 4096, api_model: API_MODEL[m.id] ?? m.id, ...familyInfo(m.family) }));
+  const families = [...KEYED, 'ollama'].map((f) => ({ id: f, label: FAMILY_NAMES[f]!, ...familyInfo(f) }));
+  return { items, families, defaults };
 }
 
 /** 모델 키 상태, 지식베이스 관리, 워크플로 파일 내보내기·가져오기 */
@@ -69,7 +73,8 @@ export const modelHandlers = [
     if (c.is_demo) return json({ ok: false, checked: false, message: '시드에 들어 있는 보기용 키입니다. 실제 키를 새로 등록하세요.' });
     if (!KEYED.includes(c.provider)) return json({ ok: true, checked: false, message: '이 종류는 연결 확인을 지원하지 않습니다. 실행할 때 확인됩니다.' });
     // 목: 'bad'가 들어간 키는 거부된 것으로 본다
-    return json(/bad/i.test(c.secret) ? { ok: false, checked: true, message: '키가 올바르지 않거나 권한이 없습니다.' } : { ok: true, checked: true, message: '연결됐습니다. 이 키로 모델을 호출할 수 있어요.' });
+    const models = c.provider === 'openai_compatible' ? ['meta-llama/llama-3.1-70b-instruct', 'qwen/qwen-2.5-72b-instruct'] : c.provider === 'openai' ? ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1'] : [];
+    return json(/bad/i.test(c.secret) ? { ok: false, checked: true, message: '키가 올바르지 않거나 권한이 없습니다.' } : { ok: true, checked: true, message: '연결됐습니다. 이 키로 모델을 호출할 수 있어요.', models });
   }),
 
   http.post(`${API}/knowledge-bases`, async ({ request }) => {

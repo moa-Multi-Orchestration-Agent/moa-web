@@ -63,6 +63,8 @@ export interface DbCredential {
   used_by: string[];
   /** 시드에 들어 있는 보기용 키(실제 호출에 쓰지 않음) */
   is_demo?: boolean;
+  /** 모델 키의 API 주소(프록시·OpenAI 호환 서버) */
+  base_url?: string | null;
 }
 export interface DbMcpServer {
   id: string;
@@ -125,6 +127,7 @@ export interface DbAgent {
   system_prompt: string;
   temperature: number;
   credential_id?: string | null;
+  model_params?: Record<string, unknown>;
   memory_enabled: boolean;
   primary_workflow_id: string | null;
   created_by: string | null;
