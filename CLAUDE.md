@@ -76,7 +76,9 @@ src/mocks/{handlers,fixtures,browser.ts,server.ts}
 
 ## Git 규칙
 **브랜치**
-- `main`에 직접 커밋·push하지 않는다. 작업마다 `main`에서 새 브랜치를 판다.
+- `main`: 배포용. `develop`에서 검증이 끝난 것만 릴리스 PR(`develop → main`)로 합친다.
+- `develop`: 통합용. 모든 작업 브랜치는 여기서 파고, PR도 여기로 보낸다.
+- `main`·`develop`에 직접 커밋·push하지 않는다. 작업마다 `develop`에서 새 브랜치를 판다.
 - 이름은 `<type>/<이슈번호>-<짧은-영문-설명>`이다. 예: `feat/12-editor-autosave`, `fix/31-sse-reconnect`, `chore/5-project-setup`
 - 이슈 번호가 없으면 `<type>/<설명>`으로 만들고, 보고할 때 "이슈 없음"이라고 알린다.
 - force push, `git reset --hard`, 히스토리 재작성은 하지 않는다.
@@ -98,7 +100,8 @@ Refs: #<이슈번호>
 - `.env*`, 비밀값, 큰 바이너리(10MB 이상)는 커밋하지 않는다. `docs/figma/*.png`는 예외로 허용한다.
 
 **PR** (사용자가 요청할 때만 `gh pr create`로 만든다)
-- 제목은 커밋 메시지 형식과 같다. Squash 머지되어 main의 커밋 제목이 된다.
+- 작업 PR의 base는 `develop`이다. 제목은 커밋 메시지 형식과 같고, Squash 머지되어 `develop`의 커밋 제목이 된다.
+- 릴리스 PR(`develop → main`)은 Merge commit으로 합친다(Squash하면 두 브랜치 히스토리가 어긋난다).
 - 본문 섹션은 다음 순서로 쓴다.
   1. 무엇을 바꿨나
   2. 왜(`Closes #번호`)
