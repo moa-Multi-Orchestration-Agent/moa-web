@@ -201,7 +201,7 @@ export function sessionView(s: (typeof db.context_sessions)[number]): ContextSes
 
 export function credentialView(c: (typeof db.credentials)[number]): CredentialRow {
   const { secret, ...rest } = c;
-  return { ...rest, base_url: c.base_url ?? null, masked: secret ? `${secret.slice(0, 4)}••••${secret.slice(-4)}` : '키 없음' };
+  return { ...rest, base_url: c.base_url ?? null, models: c.models ?? [], masked: secret ? `${secret.slice(0, 4)}••••${secret.slice(-4)}` : '키 없음' };
 }
 
 export function templateView(t: (typeof db.templates)[number]): TemplateRow {

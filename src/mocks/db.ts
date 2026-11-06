@@ -65,6 +65,7 @@ export interface DbCredential {
   is_demo?: boolean;
   /** 모델 키의 API 주소(프록시·OpenAI 호환 서버) */
   base_url?: string | null;
+  models?: string[];
 }
 export interface DbMcpServer {
   id: string;

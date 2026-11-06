@@ -11,7 +11,7 @@ export const MODELS = [
   { id: 'llama3.1-8b', label: 'Llama 3.1 8B (Ollama)', family: 'ollama', context: 8_000, price_in: 0, price_out: 0 },
 ] as const;
 export type ModelId = (typeof MODELS)[number]['id'];
-const CUSTOM_LABEL: Record<string, string> = { openai_compatible: 'OpenAI 호환', openai: 'OpenAI', anthropic: 'Anthropic', google: 'Google', ollama: 'Ollama' };
+const CUSTOM_LABEL: Record<string, string> = { openai_compatible: '외부 AI', openai: 'OpenAI', anthropic: 'Anthropic', google: 'Google', ollama: 'Ollama' };
 /** 목록 모델은 이름, 직접 입력한 `계열:모델id`는 "모델id (계열)" */
 export const modelLabel = (id: string | null | undefined) => {
   const known = MODELS.find((m) => m.id === id)?.label;

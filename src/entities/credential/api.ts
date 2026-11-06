@@ -63,7 +63,7 @@ export function useSetModelDefaults() {
 export function useUpdateCredential() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...body }: { id: string; label?: string; base_url?: string | null }) => api.patch<CredentialRow>(`/credentials/${id}`, body),
+    mutationFn: ({ id, ...body }: { id: string; label?: string; base_url?: string | null; models?: string[] }) => api.patch<CredentialRow>(`/credentials/${id}`, body),
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: credentialKeys.all });
       void qc.invalidateQueries({ queryKey: ['models'] });

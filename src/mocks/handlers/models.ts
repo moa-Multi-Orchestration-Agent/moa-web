@@ -8,7 +8,7 @@ import { workflowDetailView } from '../views';
 import { kbView } from './extras';
 
 const KEYED = ['anthropic', 'openai', 'google', 'openai_compatible'];
-const FAMILY_NAMES: Record<string, string> = { anthropic: 'Anthropic', openai: 'OpenAI', google: 'Google Gemini', openai_compatible: 'OpenAI 호환', ollama: 'Ollama' };
+const FAMILY_NAMES: Record<string, string> = { anthropic: 'Anthropic', openai: 'OpenAI', google: 'Google Gemini', openai_compatible: '외부 AI (OpenAI 호환)', ollama: 'Ollama' };
 const API_MODEL: Record<string, string> = { 'claude-sonnet-4': 'claude-sonnet-5-5', 'claude-haiku-4': 'claude-haiku-5-5', 'claude-opus-4': 'claude-opus-5-5' };
 /** 다른 워크스페이스에서는 의미가 없는 참조. 내보내기·가져오기 때 지운다(백엔드와 같은 규칙). */
 const WS_REFS = ['credential_id', 'kb_id', 'kb_name', 'agent_id', 'approvers', 'assignee'];
@@ -31,12 +31,21 @@ function modelsOf(wsId: string) {
   const defaults = ((ws?.settings as { model_credentials?: Record<string, string> } | undefined)?.model_credentials ?? {}) as Record<string, string>;
   const creds = db.credentials.filter((c) => c.workspace_id === wsId && c.purposes.includes('llm'));
   const familyInfo = (family: string) => {
-    const keys = creds.filter((c) => c.provider === family).map((c) => ({ id: c.id, label: c.label, masked: c.secret ? `${c.secret.slice(0, 4)}••••${c.secret.slice(-4)}` : '키 없음', is_demo: !!c.is_demo, base_url: c.base_url ?? null }));
+    const keys = creds.filter((c) => c.provider === family).map((c) => ({ id: c.id, label: c.label, masked: c.secret ? `${c.secret.slice(0, 4)}••••${c.secret.slice(-4)}` : '키 없음', is_demo: !!c.is_demo, base_url: c.base_url ?? null, models: c.models ?? [] }));
     const source = keys.some((k) => !k.is_demo) ? 'workspace' : family === 'openai_compatible' ? 'missing' : 'demo';
     const def = keys.find((k) => k.id === defaults[family])?.id ?? keys[0]?.id ?? null;
     return { source, keyable: KEYED.includes(family), credentials: keys, default_credential_id: def };
   };
-  const items = MODELS.map((m) => ({ id: m.id, label: m.label, family: m.family, context_window: m.context, price_in: m.price_in, price_out: m.price_out, max_output: m.family === 'ollama' ? 2048 : 4096, api_model: API_MODEL[m.id] ?? m.id, ...familyInfo(m.family) }));
+  const items: Record<string, unknown>[] = MODELS.map((m) => ({ id: m.id, label: m.label, family: m.family, context_window: m.context, price_in: m.price_in, price_out: m.price_out, max_output: m.family === 'ollama' ? 2048 : 4096, api_model: API_MODEL[m.id] ?? m.id, ...familyInfo(m.family) }));
+  // 외부 AI 키에 등록한 모델(백엔드와 같은 규칙)
+  const ext = familyInfo('openai_compatible');
+  for (const k of ext.credentials) {
+    for (const mid of k.models) {
+      const id = `openai_compatible:${mid}`;
+      if (items.some((x) => x.id === id)) continue;
+      items.push({ id, label: mid, family: 'openai_compatible', context_window: 128_000, price_in: 0, price_out: 0, max_output: 4096, api_model: mid, ...ext, default_credential_id: k.id, credential_label: k.label });
+    }
+  }
   const families = [...KEYED, 'ollama'].map((f) => ({ id: f, label: FAMILY_NAMES[f]!, ...familyInfo(f) }));
   return { items, families, defaults };
 }
