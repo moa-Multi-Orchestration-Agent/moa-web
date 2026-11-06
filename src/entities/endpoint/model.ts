@@ -3,7 +3,8 @@ import { camelKeys } from '@/shared/lib/case';
 
 export const SLUG_RE = /^[a-z0-9][a-z0-9-]{2,62}$/;
 export const RESERVED_SLUGS = ['api', 'admin', 'docs', 'health', 'openapi'];
-export const PUBLIC_API_ORIGIN = 'https://api.moa.dev';
+/** 배포 API 주소(화면 표시용). 실제 백엔드에 붙일 때는 백엔드의 MOA_PUBLIC_API_ORIGIN과 같게 맞춘다. */
+export const PUBLIC_API_ORIGIN = (process.env.NEXT_PUBLIC_PUBLIC_API_ORIGIN || 'https://api.moa.dev').replace(/\/$/, '');
 
 export const endpointRowSchema = z
   .object({

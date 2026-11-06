@@ -1,7 +1,10 @@
 'use client';
 
-import { ChevronDown } from 'lucide-react';
+import Link from 'next/link';
+import { AlertTriangle, CheckCircle2, ChevronDown } from 'lucide-react';
 import { AGENT_ICONS, MODELS, modelLabel, type AgentForm } from '@/entities/agent';
+import { boundCredential, DEFAULT_KEY, modelKeyInfo, modelPresets, useModels } from '@/entities/credential';
+import { ModelParamsFields, ModelPicker } from '@/shared/ui/model-params';
 import { copy } from '@/shared/lib/copy';
 import { estimateTokens } from '@/shared/lib/format';
 import { cn } from '@/shared/lib/utils';
@@ -71,27 +74,24 @@ export function BasicCard({ form, setForm, disabled, errors }: Props) {
   );
 }
 
+const MODEL_PRESETS = MODELS.map((m) => ({ value: m.id, label: m.label }));
+
 export function ModelCard({ form, setForm, disabled }: Props) {
   const toggleFallback = (id: string) =>
     setForm({ fallback_models: form.fallback_models.includes(id) ? form.fallback_models.filter((x) => x !== id) : [...form.fallback_models, id] });
+  const models = useModels();
+  const presets = modelPresets(MODEL_PRESETS, models.data);
   return (
     <Card title={copy.builder.model} actions={<span className="text-muted text-sm">{copy.builder.params(form.temperature)}</span>}>
       <div className="space-y-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="agent-model">{copy.builder.baseModel}</Label>
-          <Select value={form.model} onValueChange={(v) => setForm({ model: v, fallback_models: form.fallback_models.filter((x) => x !== v) })} disabled={disabled}>
-            <SelectTrigger id="agent-model" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {MODELS.map((m) => (
-                <SelectItem key={m.id} value={m.id}>
-                  {m.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <ModelPicker
+          label={copy.builder.baseModel}
+          value={form.model}
+          onChange={(v) => setForm({ model: v, fallback_models: form.fallback_models.filter((x) => x !== v), credential_id: boundCredential(models.data, v) })}
+          presets={presets}
+          disabled={disabled}
+        />
+        <AgentKeyField model={form.model} credentialId={form.credential_id ?? null} onChange={(id) => setForm({ credential_id: id })} disabled={disabled} />
         <div className="space-y-1.5">
           <Label id="fallback-label">{copy.builder.fallback}</Label>
           <Popover>
@@ -103,11 +103,11 @@ export function ModelCard({ form, setForm, disabled }: Props) {
             </PopoverTrigger>
             <PopoverContent className="w-72 p-2" align="start">
               <p className="text-muted px-2 pb-1 text-xs">순서대로 시도합니다(design.md 2.2.3).</p>
-              {MODELS.filter((m) => m.id !== form.model).map((m) => (
-                <label key={m.id} className="hover:bg-surface flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm">
-                  <Checkbox checked={form.fallback_models.includes(m.id)} onCheckedChange={() => toggleFallback(m.id)} />
+              {presets.filter((m) => m.value !== form.model).map((m) => (
+                <label key={m.value} className="hover:bg-surface flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm">
+                  <Checkbox checked={form.fallback_models.includes(m.value)} onCheckedChange={() => toggleFallback(m.value)} />
                   <span className="flex-1">{m.label}</span>
-                  {form.fallback_models.includes(m.id) ? <Badge variant="gray">{form.fallback_models.indexOf(m.id) + 1}순위</Badge> : null}
+                  {form.fallback_models.includes(m.value) ? <Badge variant="gray">{form.fallback_models.indexOf(m.value) + 1}순위</Badge> : null}
                 </label>
               ))}
             </PopoverContent>
@@ -121,6 +121,7 @@ export function ModelCard({ form, setForm, disabled }: Props) {
           <Slider aria-labelledby="temp-label" min={0} max={2} step={0.1} value={[form.temperature]} onValueChange={([v]) => setForm({ temperature: Number((v ?? 0).toFixed(1)) })} disabled={disabled} />
           <p className="text-muted text-xs">{copy.builder.temperatureHint}</p>
         </div>
+        <ModelParamsFields value={form.model_params} onChange={(p) => setForm({ model_params: p })} disabled={disabled} />
       </div>
     </Card>
   );
@@ -169,5 +170,41 @@ export function MemoryCard({ form, setForm, disabled, threshold }: Props & { thr
         <p className="text-muted mt-0.5 text-xs">{copy.builder.thresholdHint}</p>
       </div>
     </Card>
+  );
+}
+
+/** 이 에이전트가 쓸 API 키. 고르지 않으면 워크스페이스 기본 키를 쓴다. */
+function AgentKeyField({ model, credentialId, onChange, disabled }: { model: string; credentialId: string | null; onChange: (id: string | null) => void; disabled?: boolean }) {
+  const models = useModels();
+  const info = modelKeyInfo(models.data, model, credentialId);
+  if (!info) return null;
+  const Icon = info.tone === 'ok' ? CheckCircle2 : AlertTriangle;
+  return (
+    <div className="space-y-1.5">
+      {info.model.keyable ? (
+        <>
+          <Label htmlFor="agent-key">API 키</Label>
+          <Select value={info.value} onValueChange={(v) => onChange(v === DEFAULT_KEY ? null : v)} disabled={disabled}>
+            <SelectTrigger id="agent-key" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {info.options.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </>
+      ) : null}
+      <p className={cn('flex items-start gap-1.5 text-xs', info.tone === 'ok' ? 'text-success' : info.tone === 'warn' ? 'text-warning' : 'text-danger')}>
+        <Icon className="mt-px size-3.5 shrink-0" aria-hidden />
+        <span>
+          {info.text}{' '}
+          {info.model.keyable && info.tone !== 'ok' ? <Link href="/integrations?tab=model-keys" className="text-primary hover:underline">모델 키 관리</Link> : null}
+        </span>
+      </p>
+    </div>
   );
 }

@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Copy, ExternalLink, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Copy, Download, ExternalLink, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDeleteAgent, useDuplicateAgent, useUpdateAgent } from '@/entities/agent';
-import { useDeleteWorkflow, useDuplicateWorkflow, useUpdateWorkflow } from '@/entities/workflow';
+import { exportWorkflow, useDeleteWorkflow, useDuplicateWorkflow, useUpdateWorkflow } from '@/entities/workflow';
 import { useCurrentWorkspace } from '@/entities/workspace';
 import { copy } from '@/shared/lib/copy';
 import { Button } from '@/shared/ui/button';
@@ -32,6 +32,20 @@ export function ItemMenu({ kind, id, name, href, locked }: { kind: 'agent' | 'wo
   const onDuplicate = () => {
     const m = kind === 'agent' ? dupA : dupW;
     m.mutate(id, { onSuccess: () => toast.success(copy.toast.duplicated(label)), onError: (e) => toast.error(e.message) });
+  };
+  const onExport = async () => {
+    try {
+      const data = await exportWorkflow(id);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${name.replace(/[\\/:*?"<>|]+/g, '_')}.moa.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast.success(data.notes.length ? '내보냈습니다. 키·지식베이스 같은 팀 설정은 빼고 저장했어요.' : '내보냈습니다.');
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
   };
   const onDelete = () => {
     const m = kind === 'agent' ? delA : delW;
@@ -76,6 +90,11 @@ export function ItemMenu({ kind, id, name, href, locked }: { kind: 'agent' | 'wo
           >
             <Pencil aria-hidden /> {copy.studio.rename}
           </DropdownMenuItem>
+          {kind === 'workflow' ? (
+            <DropdownMenuItem onSelect={() => void onExport()}>
+              <Download aria-hidden /> 파일로 내보내기
+            </DropdownMenuItem>
+          ) : null}
           <DropdownMenuSeparator />
           <DropdownMenuItem disabled={!canDelete} variant="destructive" onSelect={() => setConfirm(true)} title={canDelete ? undefined : copy.common.adminOnly}>
             <Trash2 aria-hidden /> {copy.common.delete}

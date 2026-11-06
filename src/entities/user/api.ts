@@ -50,3 +50,17 @@ export function useLogout() {
     onSuccess: () => qc.clear(),
   });
 }
+
+export function useUpdateMe() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { display_name: string }) => api.patch<{ user: unknown }>('/auth/me', input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: userKeys.me }),
+  });
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (input: { current_password: string; new_password: string }) => api.post('/auth/password', input),
+  });
+}

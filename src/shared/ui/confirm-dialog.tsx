@@ -22,6 +22,7 @@ export function ConfirmDialog({
   confirmLabel = copy.common.delete,
   destructive = true,
   pending,
+  confirmDisabled,
   onConfirm,
 }: {
   open: boolean;
@@ -31,6 +32,8 @@ export function ConfirmDialog({
   confirmLabel?: string;
   destructive?: boolean;
   pending?: boolean;
+  /** 확인 입력 등 조건이 맞을 때만 누를 수 있게 */
+  confirmDisabled?: boolean;
   onConfirm: () => void;
 }) {
   return (
@@ -44,7 +47,7 @@ export function ConfirmDialog({
           <AlertDialogCancel disabled={pending}>{copy.common.cancel}</AlertDialogCancel>
           <AlertDialogAction
             className={buttonVariants({ variant: destructive ? 'destructive' : 'default' })}
-            disabled={pending}
+            disabled={pending || confirmDisabled}
             onClick={(e) => {
               e.preventDefault();
               onConfirm();

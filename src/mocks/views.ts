@@ -86,6 +86,8 @@ export function agentView(a: DbAgent): AgentRow {
     fallback_models: a.fallback_models,
     system_prompt: hidden ? '' : a.system_prompt,
     temperature: a.temperature,
+    credential_id: a.credential_id ?? null,
+    model_params: a.model_params ?? {},
     memory_enabled: a.memory_enabled,
     primary_workflow_id: a.primary_workflow_id,
     created_by: a.created_by,
@@ -199,7 +201,7 @@ export function sessionView(s: (typeof db.context_sessions)[number]): ContextSes
 
 export function credentialView(c: (typeof db.credentials)[number]): CredentialRow {
   const { secret, ...rest } = c;
-  return { ...rest, masked: `${secret.slice(0, 4)}••••${secret.slice(-4)}` };
+  return { ...rest, base_url: c.base_url ?? null, models: c.models ?? [], masked: secret ? `${secret.slice(0, 4)}••••${secret.slice(-4)}` : '키 없음' };
 }
 
 export function templateView(t: (typeof db.templates)[number]): TemplateRow {

@@ -3,6 +3,7 @@ import { workspaceSlugRe } from '@/entities/workspace/model';
 import { db } from '../db';
 import { API, body, ctxOf, guard, isResponse, json, notFound, problem } from '../lib/http';
 import { nowIso, uuid } from '../lib/util';
+import { notify, ROLE_LABEL, settleInvite } from './team';
 
 function memberView(m: (typeof db.memberships)[number]) {
   const u = db.users.find((x) => x.id === m.user_id)!;
@@ -14,7 +15,7 @@ export const workspaceHandlers = [
     const ctx = ctxOf(request);
     if (!ctx) return problem('MOA-AUTH-002');
     const items = db.memberships
-      .filter((m) => m.user_id === ctx.userId)
+      .filter((m) => m.user_id === ctx.userId && !m.invited)
       .map((m) => ({ ...db.workspaces.find((w) => w.id === m.workspace_id)!, role: m.role }));
     return json({ items, next_cursor: null });
   }),
@@ -55,8 +56,11 @@ export const workspaceHandlers = [
       user = { id: uuid(), email: b.email, display_name: b.email.split('@')[0]!, password: null, oauth_provider: null, created_at: nowIso(), updated_at: nowIso() };
       db.users.push(user);
     }
-    const m = { workspace_id: ctx.wsId, user_id: user.id, role: b.role ?? 'maker', created_at: nowIso(), last_seen_at: null, invited: true };
+    const m = { workspace_id: ctx.wsId, user_id: user.id, role: b.role ?? 'maker', created_at: nowIso(), last_seen_at: null, invited: true, invited_by: ctx.userId };
     db.memberships.push(m);
+    const ws = db.workspaces.find((w) => w.id === ctx.wsId)!;
+    const inviter = db.users.find((u) => u.id === ctx.userId)!;
+    notify({ user_id: user.id, workspace_id: ws.id, kind: 'invite', title: `'${ws.name}' 팀 초대`, body: `${inviter.display_name}님이 ${ROLE_LABEL[m.role]} 역할로 초대했습니다.`, action_state: 'pending', data: { role: m.role, invited_by: ctx.userId, inviter_name: inviter.display_name } });
     return json(memberView(m), 201);
   }),
   http.patch(`${API}/workspaces/:id/members/:userId`, async ({ request, params }) => {
@@ -67,9 +71,7 @@ export const workspaceHandlers = [
     const b = await body<{ role: 'owner' | 'admin' | 'maker' | 'viewer' }>(request);
     if (m.role === 'owner') return problem('MOA-AUTH-003', '소유자의 역할은 바꿀 수 없습니다. 소유권 이전은 소유자만 할 수 있습니다.', {}, 409);
     if (b.role === 'owner') return problem('MOA-AUTH-003', '워크스페이스 소유자는 1명입니다. 소유권 이전 기능을 쓰세요.', {}, 409);
-    if (ctx.role === 'admin' && m.role === 'admin' && m.user_id !== ctx.userId) {
-      // admin은 owner를 제외한 역할 변경 가능(3.1.1)
-    }
+    if (ctx.role === 'admin' && m.role === 'admin' && m.user_id !== ctx.userId) return problem('MOA-AUTH-003', '다른 관리자의 역할은 소유자만 바꿀 수 있습니다.');
     m.role = b.role;
     return json(memberView(m));
   }),
@@ -78,8 +80,13 @@ export const workspaceHandlers = [
     if (isResponse(ctx)) return ctx;
     const idx = db.memberships.findIndex((x) => x.workspace_id === ctx.wsId && x.user_id === params.userId);
     if (idx < 0) return notFound('멤버');
-    if (db.memberships[idx]!.role === 'owner') return problem('MOA-AUTH-003', '소유자는 제거할 수 없습니다.', {}, 409);
+    const m = db.memberships[idx]!;
+    if (m.role === 'owner') return problem('MOA-AUTH-003', '소유자는 제거할 수 없습니다.', {}, 409);
+    if (ctx.role === 'admin' && m.role === 'admin' && m.user_id !== ctx.userId) return problem('MOA-AUTH-003', '다른 관리자는 소유자만 내보낼 수 있습니다.');
     db.memberships.splice(idx, 1);
+    const ws = db.workspaces.find((w) => w.id === ctx.wsId)!;
+    if (m.invited) settleInvite(m.user_id, ws.id, 'canceled');
+    else notify({ user_id: m.user_id, workspace_id: null, kind: 'member', title: `'${ws.name}' 팀에서 내보내졌습니다`, body: '더 이상 이 팀의 에이전트·워크플로에 접근할 수 없습니다.' });
     return new Response(null, { status: 204 });
   }),
 ];

@@ -117,7 +117,7 @@ export function NewDeployDialog({ open, onOpenChange, initialAgentId }: { open: 
           <div className="space-y-1.5">
             <Label htmlFor="dep-slug">슬러그</Label>
             <div className="flex items-center rounded-md border focus-within:ring-2 focus-within:ring-ring/40">
-              <span className="text-muted bg-surface shrink-0 border-r px-2.5 py-2 font-mono text-xs">{PUBLIC_API_ORIGIN.replace('https://', '')}/a/{workspace?.slug}/</span>
+              <span className="text-muted bg-surface shrink-0 border-r px-2.5 py-2 font-mono text-xs">{PUBLIC_API_ORIGIN.replace(/^https?:\/\//, '')}/a/{workspace?.slug}/</span>
               <input
                 id="dep-slug"
                 value={form.slug}

@@ -16,14 +16,16 @@ export type UserRow = z.infer<typeof userRowSchema>;
 export const toUser = (r: UserRow) => camelKeys(r);
 export type User = ReturnType<typeof toUser>;
 
+// 로그인은 길이 규칙을 강제하지 않는다(규칙은 가입에서만). 백엔드 데모 계정 비밀번호는 7자(moa1234)다.
 export const loginInputSchema = z.object({
   email: z.string().min(1, '이메일을 입력하세요.').email('이메일 형식이 아닙니다.'),
-  password: z.string().min(8, '비밀번호는 8자 이상입니다.'),
+  password: z.string().min(1, '비밀번호를 입력하세요.'),
 });
 export type LoginInput = z.infer<typeof loginInputSchema>;
 
 export const signupInputSchema = loginInputSchema
   .extend({
+    password: z.string().min(8, '비밀번호는 8자 이상입니다.'),
     display_name: z.string().trim().min(2, '이름은 2자 이상입니다.').max(30, '이름은 30자 이하입니다.'),
     password_confirm: z.string(),
   })
@@ -32,3 +34,16 @@ export const signupInputSchema = loginInputSchema
     path: ['password_confirm'],
   });
 export type SignupInput = z.infer<typeof signupInputSchema>;
+
+export const profileFormSchema = z.object({
+  display_name: z.string().trim().min(1, '이름을 입력하세요.').max(30, '30자 이하로 입력하세요.'),
+});
+
+export const passwordFormSchema = z
+  .object({
+    current_password: z.string().min(1, '지금 비밀번호를 입력하세요.'),
+    new_password: z.string().min(8, '새 비밀번호는 8자 이상입니다.'),
+    new_password_confirm: z.string(),
+  })
+  .refine((v) => v.new_password === v.new_password_confirm, { message: '새 비밀번호가 서로 다릅니다.', path: ['new_password_confirm'] });
+export type PasswordForm = z.infer<typeof passwordFormSchema>;

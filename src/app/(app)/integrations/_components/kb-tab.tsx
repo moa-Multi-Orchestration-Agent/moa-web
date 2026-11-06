@@ -1,10 +1,10 @@
 'use client';
 
 import { useQueryClient } from '@tanstack/react-query';
-import { FileText, Trash2, Upload } from 'lucide-react';
+import { FileText, Plus, Trash2, Upload } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { useDeleteKbDocument, useKbDocuments, useKnowledgeBases, useUploadKbDocument, type KbDocument } from '@/entities/credential';
+import { useDeleteKb, useDeleteKbDocument, useKbDocuments, useKnowledgeBases, useUploadKbDocument, type KbDocument } from '@/entities/credential';
 import { useCurrentWorkspace } from '@/entities/workspace';
 import { formatDate, relativeTime } from '@/shared/lib/format';
 import { Badge } from '@/shared/ui/badge';
@@ -15,6 +15,7 @@ import { SectionCard } from '@/shared/ui/page-header';
 import { EmptyState, ErrorState, ListSkeleton } from '@/shared/ui/states';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table';
 import { cn } from '@/shared/lib/utils';
+import { CreateKbDialog, KbSearchCard } from './kb-manage';
 
 const STATUS: Record<KbDocument['status'], { label: string; variant: 'gray' | 'orange' | 'green' | 'red' }> = {
   pending: { label: '대기', variant: 'gray' },
@@ -33,6 +34,8 @@ function size(bytes: number) {
 
 function KbDocuments({ kbId, name }: { kbId: string; name: string }) {
   const { can } = useCurrentWorkspace();
+  const delKb = useDeleteKb();
+  const [deletingKb, setDeletingKb] = useState(false);
   const qc = useQueryClient();
   const docs = useKbDocuments(kbId);
   const upload = useUploadKbDocument(kbId);
@@ -47,9 +50,8 @@ function KbDocuments({ kbId, name }: { kbId: string; name: string }) {
   }, [sig, qc]);
 
   const onFiles = (files: FileList | null) => {
-    // 파일 내용은 보내지 않고 메타데이터만 보낸다(목에서는 사전 서명 URL 업로드를 생략)
     for (const f of Array.from(files ?? [])) {
-      upload.mutate({ filename: f.name, mime: f.type || 'application/octet-stream', bytes: f.size }, {
+      upload.mutate(f, {
         onSuccess: () => toast.success(`${f.name} 업로드 완료, 색인을 시작합니다.`),
         onError: (e) => toast.error(`${f.name}: ${e.message}`),
       });
@@ -62,11 +64,16 @@ function KbDocuments({ kbId, name }: { kbId: string; name: string }) {
       title={`${name} 문서`}
       bodyClassName="p-0 pt-3"
       actions={
-        <Guarded allowed={can('edit')} reason="문서는 메이커 이상만 올릴 수 있습니다.">
-          <Button size="sm" onClick={() => fileRef.current?.click()} disabled={upload.isPending} data-testid="kb-upload">
-            <Upload aria-hidden /> 문서 올리기
-          </Button>
-        </Guarded>
+        <div className="flex gap-2">
+          <Guarded allowed={can('delete')} reason="지식베이스 삭제는 관리자 이상만 할 수 있습니다.">
+            <Button size="sm" variant="ghost" onClick={() => setDeletingKb(true)} aria-label={`${name} 지식베이스 삭제`}><Trash2 aria-hidden /></Button>
+          </Guarded>
+          <Guarded allowed={can('edit')} reason="문서는 메이커 이상만 올릴 수 있습니다.">
+            <Button size="sm" onClick={() => fileRef.current?.click()} disabled={upload.isPending} data-testid="kb-upload">
+              <Upload aria-hidden /> 문서 올리기
+            </Button>
+          </Guarded>
+        </div>
       }
     >
       <input ref={fileRef} type="file" multiple accept={ACCEPT} className="hidden" aria-label="올릴 문서 파일" onChange={(e) => onFiles(e.target.files)} />
@@ -96,7 +103,6 @@ function KbDocuments({ kbId, name }: { kbId: string; name: string }) {
           </TableBody>
         </Table>
       )}
-      <p className="text-muted px-5 py-3 text-xs">모의 업로드입니다. 파일 내용은 보내지 않고, 이름에 “fail”이 들어가면 색인 실패를 흉내 냅니다.</p>
       <ConfirmDialog
         open={!!target}
         onOpenChange={(o) => !o && setTarget(null)}
@@ -105,18 +111,32 @@ function KbDocuments({ kbId, name }: { kbId: string; name: string }) {
         pending={del.isPending}
         onConfirm={() => target && del.mutate(target.id, { onSuccess: () => { toast.success('문서를 지웠습니다.'); setTarget(null); }, onError: (e) => toast.error(e.message) })}
       />
+      <ConfirmDialog
+        open={deletingKb}
+        onOpenChange={setDeletingKb}
+        title={`'${name}' 지식베이스를 지울까요?`}
+        description="문서와 색인이 모두 지워집니다. 이 지식베이스를 쓰는 RAG 노드는 다시 골라야 합니다."
+        pending={delKb.isPending}
+        onConfirm={() => delKb.mutate(kbId, { onSuccess: () => toast.success('지식베이스를 지웠습니다.'), onError: (e) => toast.error(e.message), onSettled: () => setDeletingKb(false) })}
+      />
     </SectionCard>
   );
 }
 
 export function KbTab() {
   const q = useKnowledgeBases();
+  const { can } = useCurrentWorkspace();
   const [sel, setSel] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
   const selected = q.data?.find((k) => k.id === sel) ?? q.data?.[0] ?? null;
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-      <SectionCard title="지식베이스 (RAG)" bodyClassName="p-0 pt-3">
-        {q.isPending ? <div className="p-5"><ListSkeleton rows={3} /></div> : q.isError ? <div className="p-5"><ErrorState error={q.error} onRetry={() => void q.refetch()} /></div> : !q.data.length ? <div className="p-5"><EmptyState title="지식베이스가 없어요" /></div> : (
+      <SectionCard
+        title="지식베이스 (RAG)"
+        bodyClassName="p-0 pt-3"
+        actions={<Guarded allowed={can('edit')} reason="메이커 이상만 만들 수 있습니다."><Button size="sm" variant="outline" onClick={() => setCreating(true)} data-testid="kb-create"><Plus aria-hidden /> 만들기</Button></Guarded>}
+      >
+        {q.isPending ? <div className="p-5"><ListSkeleton rows={3} /></div> : q.isError ? <div className="p-5"><ErrorState error={q.error} onRetry={() => void q.refetch()} /></div> : !q.data.length ? <div className="p-5"><EmptyState title="지식베이스가 없어요" description="만들기를 눌러 첫 지식베이스를 만들고 문서를 올려 보세요." /></div> : (
           <Table>
             <TableHeader className="bg-surface"><TableRow><TableHead>이름</TableHead><TableHead>문서</TableHead><TableHead>임베딩 · 청크</TableHead><TableHead>만든 날</TableHead></TableRow></TableHeader>
             <TableBody>
@@ -139,7 +159,13 @@ export function KbTab() {
           </Table>
         )}
       </SectionCard>
-      {selected ? <KbDocuments kbId={selected.id} name={selected.name} /> : null}
+      {selected ? (
+        <div className="space-y-5">
+          <KbDocuments key={selected.id} kbId={selected.id} name={selected.name} />
+          <KbSearchCard key={`s-${selected.id}`} kbId={selected.id} />
+        </div>
+      ) : null}
+      <CreateKbDialog open={creating} onOpenChange={setCreating} onCreated={setSel} />
     </div>
   );
 }

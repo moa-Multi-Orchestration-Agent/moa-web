@@ -52,6 +52,8 @@ export const agentHandlers = [
       deleted_at: null,
       icon: b.icon ?? '🤖',
       memory_scopes: b.memory_scopes ?? ['short'],
+      credential_id: b.credential_id ?? null,
+      model_params: b.model_params ?? {},
       origin_license_id: null,
       api_only: false,
     };
@@ -73,7 +75,7 @@ export const agentHandlers = [
     const b = await body<Partial<DbAgent>>(request);
     if (b.temperature !== undefined && (b.temperature < 0 || b.temperature > 2)) return problem('MOA-VALIDATION', 'temperature는 0~2 사이입니다.');
     if (b.name !== undefined && !b.name.trim()) return problem('MOA-VALIDATION', '이름을 입력하세요.');
-    const allowed: (keyof DbAgent)[] = ['name', 'description', 'model', 'fallback_models', 'system_prompt', 'temperature', 'memory_enabled', 'primary_workflow_id', 'icon', 'memory_scopes'];
+    const allowed: (keyof DbAgent)[] = ['name', 'description', 'model', 'fallback_models', 'system_prompt', 'temperature', 'memory_enabled', 'primary_workflow_id', 'icon', 'memory_scopes', 'credential_id', 'model_params'];
     for (const k of allowed) if (b[k] !== undefined) (a as unknown as Record<string, unknown>)[k] = b[k];
     a.updated_at = nowIso();
     return json(agentDetailView(a));

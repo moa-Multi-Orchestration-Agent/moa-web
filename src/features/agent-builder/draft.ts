@@ -44,6 +44,8 @@ export const EMPTY_FORM: AgentForm = {
   system_prompt: '',
   memory_enabled: true,
   memory_scopes: ['short'],
+  credential_id: null,
+  model_params: {},
 };
 
 export function draftFromDetail(d: AgentDetail | undefined): AgentDraft {
@@ -59,6 +61,8 @@ export function draftFromDetail(d: AgentDetail | undefined): AgentDraft {
       system_prompt: d.systemPrompt,
       memory_enabled: d.memoryEnabled,
       memory_scopes: d.memoryScopes ?? [],
+      credential_id: d.credentialId ?? null,
+      model_params: d.modelParams ?? {},
     },
     skills: d.skills.map((s) => ({
       id: s.id,
