@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { AlertTriangle, CheckCircle2, KeyRound, Plus, Trash2 } from 'lucide-react';
 import { MODELS, modelLabel } from '@/entities/agent';
-import { DEFAULT_KEY, modelKeyInfo, useKnowledgeBases, useModels } from '@/entities/credential';
+import { boundCredential, DEFAULT_KEY, modelKeyInfo, modelPresets, useKnowledgeBases, useModels } from '@/entities/credential';
 import { cn } from '@/shared/lib/utils';
 import { useMcpTools } from '@/entities/mcp';
 import { Button } from '@/shared/ui/button';
@@ -52,9 +52,11 @@ export function ModelKeyField({ model, credentialId, onChange, disabled }: { mod
 export function LlmForm({ cfg, set, disabled, bindings }: FormProps) {
   const fallbacks = (cfg.fallback_models as string[]) ?? [];
   const model = String(cfg.model ?? 'claude-sonnet-4');
+  const models = useModels();
+  const presets = modelPresets(modelOptions, models.data);
   return (
     <div className="space-y-3">
-      <ModelPicker label="모델" value={model} onChange={(v) => set({ model: v, credential_id: null })} presets={modelOptions} disabled={disabled} />
+      <ModelPicker label="모델" value={model} onChange={(v) => set({ model: v, credential_id: boundCredential(models.data, v) })} presets={presets} disabled={disabled} />
       <ModelKeyField model={model} credentialId={(cfg.credential_id as string | null) ?? null} onChange={(id) => set({ credential_id: id })} disabled={disabled} />
       <TemplateInput label="프롬프트 템플릿" value={String(cfg.prompt ?? '')} onChange={(v) => set({ prompt: v })} options={bindings} disabled={disabled} />
       <div className="space-y-1.5">
@@ -68,7 +70,7 @@ export function LlmForm({ cfg, set, disabled, bindings }: FormProps) {
             </Button>
           </div>
         ))}
-        <SelectField label="대체 모델 추가" value="" onChange={(v) => set({ fallback_models: [...fallbacks, v] })} options={modelOptions.filter((o) => o.value !== cfg.model && !fallbacks.includes(o.value))} disabled={disabled} placeholder="모델 고르기" />
+        <SelectField label="대체 모델 추가" value="" onChange={(v) => set({ fallback_models: [...fallbacks, v] })} options={presets.filter((o) => o.value !== cfg.model && !fallbacks.includes(o.value))} disabled={disabled} placeholder="모델 고르기" />
       </div>
       <SliderField label="온도" value={Number(cfg.temperature ?? 0.7)} onChange={(v) => set({ temperature: v })} min={0} max={2} step={0.1} disabled={disabled} />
       <ModelParamsFields value={cfg.params as Record<string, unknown> | undefined} onChange={(p) => set({ params: Object.keys(p).length ? p : undefined })} disabled={disabled} />

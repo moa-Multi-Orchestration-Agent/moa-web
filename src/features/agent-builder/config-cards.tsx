@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { AlertTriangle, CheckCircle2, ChevronDown } from 'lucide-react';
 import { AGENT_ICONS, MODELS, modelLabel, type AgentForm } from '@/entities/agent';
-import { DEFAULT_KEY, modelKeyInfo, useModels } from '@/entities/credential';
+import { boundCredential, DEFAULT_KEY, modelKeyInfo, modelPresets, useModels } from '@/entities/credential';
 import { ModelParamsFields, ModelPicker } from '@/shared/ui/model-params';
 import { copy } from '@/shared/lib/copy';
 import { estimateTokens } from '@/shared/lib/format';
@@ -79,14 +79,16 @@ const MODEL_PRESETS = MODELS.map((m) => ({ value: m.id, label: m.label }));
 export function ModelCard({ form, setForm, disabled }: Props) {
   const toggleFallback = (id: string) =>
     setForm({ fallback_models: form.fallback_models.includes(id) ? form.fallback_models.filter((x) => x !== id) : [...form.fallback_models, id] });
+  const models = useModels();
+  const presets = modelPresets(MODEL_PRESETS, models.data);
   return (
     <Card title={copy.builder.model} actions={<span className="text-muted text-sm">{copy.builder.params(form.temperature)}</span>}>
       <div className="space-y-4">
         <ModelPicker
           label={copy.builder.baseModel}
           value={form.model}
-          onChange={(v) => setForm({ model: v, fallback_models: form.fallback_models.filter((x) => x !== v), credential_id: null })}
-          presets={MODEL_PRESETS}
+          onChange={(v) => setForm({ model: v, fallback_models: form.fallback_models.filter((x) => x !== v), credential_id: boundCredential(models.data, v) })}
+          presets={presets}
           disabled={disabled}
         />
         <AgentKeyField model={form.model} credentialId={form.credential_id ?? null} onChange={(id) => setForm({ credential_id: id })} disabled={disabled} />
@@ -101,11 +103,11 @@ export function ModelCard({ form, setForm, disabled }: Props) {
             </PopoverTrigger>
             <PopoverContent className="w-72 p-2" align="start">
               <p className="text-muted px-2 pb-1 text-xs">순서대로 시도합니다(design.md 2.2.3).</p>
-              {MODELS.filter((m) => m.id !== form.model).map((m) => (
-                <label key={m.id} className="hover:bg-surface flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm">
-                  <Checkbox checked={form.fallback_models.includes(m.id)} onCheckedChange={() => toggleFallback(m.id)} />
+              {presets.filter((m) => m.value !== form.model).map((m) => (
+                <label key={m.value} className="hover:bg-surface flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm">
+                  <Checkbox checked={form.fallback_models.includes(m.value)} onCheckedChange={() => toggleFallback(m.value)} />
                   <span className="flex-1">{m.label}</span>
-                  {form.fallback_models.includes(m.id) ? <Badge variant="gray">{form.fallback_models.indexOf(m.id) + 1}순위</Badge> : null}
+                  {form.fallback_models.includes(m.value) ? <Badge variant="gray">{form.fallback_models.indexOf(m.value) + 1}순위</Badge> : null}
                 </label>
               ))}
             </PopoverContent>

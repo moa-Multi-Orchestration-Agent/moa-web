@@ -112,7 +112,7 @@ export function ModelParamsFields({ value, onChange, disabled, defaultOpen }: { 
 }
 
 export const CUSTOM_FAMILY_OPTIONS = [
-  { value: 'openai_compatible', label: 'OpenAI 호환 서버' },
+  { value: 'openai_compatible', label: '외부 AI (OpenAI 호환 라우터)' },
   { value: 'openai', label: 'OpenAI' },
   { value: 'anthropic', label: 'Anthropic' },
   { value: 'google', label: 'Google Gemini' },
