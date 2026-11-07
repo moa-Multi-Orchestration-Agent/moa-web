@@ -29,6 +29,7 @@ export const NODE_TYPES = [
   'kb_search',
   'three_d',
   'approval',
+  'doc_extract',
 ] as const;
 export const nodeTypeSchema = z.enum(NODE_TYPES);
 export type NodeType = z.infer<typeof nodeTypeSchema>;

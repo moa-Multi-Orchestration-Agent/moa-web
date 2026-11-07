@@ -1,5 +1,5 @@
 /**
- * 노드 팔레트: 8그룹 47블록 (prompts.md 2단계 5), frontend-plan D23).
+ * 노드 팔레트: 8그룹 48블록 (prompts.md 2단계 5), frontend-plan D23).
  * type은 design.md 2.2.3 HANDLERS 중 하나다. icon은 lucide 아이콘 이름.
  */
 import type { Block, NodeDef, Port } from '@/entities/workflow/model';
@@ -71,6 +71,7 @@ export const BLOCKS: Block[] = [
   b({ id: 'kb.memory_save', group: 'knowledge', type: 'tool', label: '기억하기', description: '장기 기억에 저장합니다', icon: 'BookmarkPlus', ports_in: [p('content', 'string', true, '내용')], ports_out: [p('memory_id', 'string')], config: { tool: 'memory_save', kind: 'long' } }),
   b({ id: 'kb.memory_recall', group: 'knowledge', type: 'kb_search', label: '기억 불러오기', description: '관련 기억을 찾아 옵니다', icon: 'History', ports_in: [p('query', 'string', true, '질문')], ports_out: [p('memories', 'array')], config: { source: 'memory', top_k: 5 } }),
   b({ id: 'kb.load_doc', group: 'knowledge', type: 'tool', label: '문서 로드', description: '파일을 읽어 텍스트로 바꿉니다', icon: 'FileUp', ports_in: [p('url', 'string', true, '파일 URL')], ports_out: [p('text', 'string')], config: { tool: 'load_document' } }),
+  b({ id: 'doc.pdf_extract', group: 'knowledge', type: 'doc_extract', label: 'PDF 텍스트 추출', description: 'PDF 파일들에서 본문 텍스트를 뽑습니다', icon: 'FileText', ports_in: [p('files', 'array', true, '파일 목록')], ports_out: [p('documents', 'array'), p('count', 'number')], config: { max_files: 10 } }),
   b({ id: 'kb.embed', group: 'knowledge', type: 'tool', label: '임베딩 생성', description: '텍스트를 벡터로 바꿉니다', icon: 'Binary', ports_in: [p('text', 'string', true, '텍스트')], ports_out: [p('vector', 'array')], config: { tool: 'embed', model: 'text-embedding-3-small' } }),
 
   // 3D (5)

@@ -110,6 +110,18 @@ export function fakeOutput(n: NodeDef, input: Record<string, unknown>): unknown 
       return { a: 'A', b: 'B' };
     case 'approval':
       return { approved: true };
+    case 'doc_extract': {
+      // 목 모드: 파일 이름만 보고 가짜 본문을 만든다(실제 PDF는 읽지 않는다)
+      const files = Array.isArray(input.files) ? (input.files as { filename?: string }[]) : [];
+      const documents = files.slice(0, Number(n.config.max_files ?? 10)).map((f, index) => ({
+        index,
+        filename: String(f?.filename ?? `파일 ${index + 1}`),
+        text: '제1조 (계약기간) … (목 데이터: 실제 PDF를 읽지 않았습니다)',
+        chars: 40,
+        error: null,
+      }));
+      return { documents, count: documents.length, failed: 0 };
+    }
     case 'three_d':
       return {
         asset: { format: 'glb', url: SAMPLE_GLB, poly_count: 4212, bytes: 120_484 },
