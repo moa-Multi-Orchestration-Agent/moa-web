@@ -1,4 +1,4 @@
-/** 공식 템플릿 24개 (8개 카테고리 × 3) */
+/** 공식 템플릿 25개 (8개 카테고리 × 3 + 복합 작업 자동화 1) */
 import type { EdgeDef, NodeDef, WorkflowDefinition } from '@/entities/workflow/model';
 import { isAssignable } from '@/entities/workflow/graph';
 import type { DbTemplate } from '../db';
@@ -214,4 +214,52 @@ export const SEED_TEMPLATES: DbTemplate[] = [
     ['tool.http', '캘린더 등록', { method: 'POST', url: 'https://calendar.example.com/api/events' }],
     ['output.result', '결과 반환'],
   ]),
+  // 복합 작업 자동화
+  contractReview(),
 ];
+
+/**
+ * 근로계약서 검토: PDF 여러 건 → 텍스트 추출 → 계약서마다 분류·위험 검사 → 결과 모으기 → 전체 총평.
+ * 반복(loop_back) 구조라 chain()의 선형 엣지 대신 노드는 chain()으로 만들고 엣지만 직접 잇는다.
+ * 위험 검사(n4)는 반복 노드에 직접 잇지 않는다. 반복 노드가 분류(n3)와 동시에 보내면 두 번 돌기 때문에,
+ * 계약서 본문은 config 바인딩 {{n2.output.item}}으로 받는다.
+ */
+function contractReview(): DbTemplate {
+  const t = T(25, { name: '근로계약서 검토', summary: '근로계약서 PDF 여러 건의 위험 조항을 찾아 한 페이지 검토 요약문을 만듭니다', category: 'data', kind: 'workflow', difficulty: 'hard', icon: '📑', trigger: 'manual', model: 'claude-sonnet-4', skills: [], required_connections: [] }, [
+    ['input.manual', '계약서 PDF 입력', { fields: [field('files', '계약서 파일 목록 [{filename, data_base64}]', 'array')] }],
+    ['doc.pdf_extract', '텍스트 추출'],
+    ['logic.loop', '계약서마다 반복'],
+    ['llm.classify', '계약서 유형 분류', {
+      labels: ['정규직 근로계약서', '기간제 근로계약서', '단시간 근로계약서', '근로계약서 아님'],
+      prompt: '다음 계약서가 어떤 근로계약서인지 분류해 줘. 근로계약서가 아니면 "근로계약서 아님"으로 답해.\n\n{{n2.output.item.text}}',
+    }],
+    ['llm.risk_check', '위험 조항 검사', { document: '{{n2.output.item}}' }],
+    ['logic.collect', '검토 결과 모으기'],
+    ['llm.summarize', '전체 총평', {
+      query: '전체 총평',
+      prompt: '아래는 근로계약서별 검토 결과다. 전체를 보고 가장 먼저 고쳐야 할 점을 중심으로 총평을 3줄 이내로 써 줘. 결과가 비어 있으면 "검토할 계약서가 없습니다."라고만 써.\n\n{{n5.output.text}}',
+    }],
+    ['data.template', '검토 요약문 만들기', { template: '# 근로계약서 검토 요약\n\n{{n5.output.text}}\n\n---\n\n## 전체 총평\n{{n6.output.text}}' }],
+    ['output.result', '검토 요약문 반환'],
+  ]);
+  // 반복 본문은 윗줄, 반복이 끝난 뒤 흐름은 아랫줄에 둔다
+  const pos: Record<string, [number, number]> = { in: [60, 200], n1: [300, 200], n2: [540, 200], n3: [780, 40], n4: [1020, 40], n5: [1260, 40], n6: [780, 360], n7: [1020, 360], out: [1260, 360] };
+  const nodes = t.definition.nodes.map((n) => {
+    const [x, y] = pos[n.id] ?? [n.position?.x ?? 0, n.position?.y ?? 0];
+    // 위험 검사는 긴 프롬프트·긴 답이라 기본 60초보다 넉넉히, 모델 호출 실패는 한 번 더 시도
+    return n.id === 'n4' ? { ...n, position: { x, y }, timeout_s: 180, retry: { max_attempts: 2 } } : { ...n, position: { x, y } };
+  });
+  const e = (id: string, source: string, source_port: string, target: string, target_port: string, condition: string | null = null): EdgeDef => ({ id, source, source_port, target, target_port, condition });
+  const edges: EdgeDef[] = [
+    e('e1', 'in', 'files', 'n1', 'files'),
+    e('e2', 'n1', 'documents', 'n2', 'items'),
+    e('e3', 'n2', 'item', 'n3', 'query'),
+    e('e4', 'n3', 'label', 'n4', 'contract_type'),
+    e('e5', 'n4', 'review', 'n5', 'item'),
+    e('e6', 'n5', 'next', 'n2', 'items', 'loop_back'),
+    e('e7', 'n2', 'done', 'n6', 'context'),
+    e('e8', 'n6', 'text', 'n7', 'data'),
+    e('e9', 'n7', 'text', 'out', 'result'),
+  ];
+  return { ...t, definition: { nodes, edges } };
+}
