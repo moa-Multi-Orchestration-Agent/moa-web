@@ -22,4 +22,14 @@ describe('근로계약서 검토용 노드', () => {
     expect(out.documents.map((d) => d.filename)).toEqual(['a.pdf', 'b.pdf']);
     expect(fakeOutput(node, {})).toMatchObject({ documents: [], count: 0 });
   });
+
+  it('logic.collect: 로직 그룹, loop로 되돌아갈 next 포트를 가진다', () => {
+    const block = catalog().blocks.find((b) => b.id === 'logic.collect')!;
+    expect(block).toMatchObject({ group: 'logic', type: 'collect', config: { text_field: 'text' } });
+    expect(block.ports_out.map((p) => p.name)).toEqual(['items', 'text', 'next']);
+    expect(nodeColor('collect')).toBe(NODE_GROUP_COLORS.logic);
+    const out = fakeOutput(makeNode('n5', 'logic.collect', '모으기', 0, 0), {}) as { items: { filename: string }[]; next: unknown };
+    expect(out.items[0]!.filename).toBe('계약서.pdf');
+    expect(out.next).toBeNull();
+  });
 });

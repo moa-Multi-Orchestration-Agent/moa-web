@@ -1,5 +1,5 @@
 /**
- * 노드 팔레트: 8그룹 48블록 (prompts.md 2단계 5), frontend-plan D23).
+ * 노드 팔레트: 8그룹 49블록 (prompts.md 2단계 5), frontend-plan D23).
  * type은 design.md 2.2.3 HANDLERS 중 하나다. icon은 lucide 아이콘 이름.
  */
 import type { Block, NodeDef, Port } from '@/entities/workflow/model';
@@ -53,6 +53,7 @@ export const BLOCKS: Block[] = [
   // 로직 (6)
   b({ id: 'logic.condition', group: 'logic', type: 'condition', label: '조건 분기', description: '조건에 따라 다른 길로 보냅니다', icon: 'GitBranch', ports_in: [p('value', 'any', true, '판단 값')], ports_out: [p('true', 'any', false, '예'), p('false', 'any', false, '아니오')], config: { rules: [{ left: 'score', op: '>=', right: '0.7' }] } }),
   b({ id: 'logic.loop', group: 'logic', type: 'loop', label: '반복', description: '목록의 항목마다 반복합니다', icon: 'Repeat', ports_in: [p('items', 'array', true, '목록')], ports_out: [p('item', 'any'), p('done', 'array')], config: { max_iter: 20 } }),
+  b({ id: 'logic.collect', group: 'logic', type: 'collect', label: '결과 모으기', description: '반복할 때마다 결과를 순서대로 모읍니다', icon: 'ListPlus', ports_in: [p('item', 'any', true, '모을 값')], ports_out: [p('items', 'array'), p('text', 'string'), p('next', 'any')], config: { text_field: 'text' } }),
   b({ id: 'logic.parallel', group: 'logic', type: 'parallel', label: '병렬', description: '여러 갈래를 동시에 실행합니다', icon: 'Split', ports_in: [p('input', 'any')], ports_out: [p('a', 'any'), p('b', 'any')] }),
   b({ id: 'logic.merge', group: 'logic', type: 'code', label: '병합', description: '여러 결과를 하나로 합칩니다', icon: 'Merge', ports_in: [p('a', 'any'), p('b', 'any')], ports_out: [p('merged', 'object')], config: { language: 'python', code: 'return {**a, **b}' } }),
   b({ id: 'logic.delay', group: 'logic', type: 'code', label: '대기', description: '정해진 시간만큼 기다립니다', icon: 'Timer', ports_in: [p('input', 'any')], ports_out: [p('output', 'any')], config: { seconds: 60 } }),

@@ -106,6 +106,11 @@ export function fakeOutput(n: NodeDef, input: Record<string, unknown>): unknown 
       return { branch: 'true', value: 0.82 };
     case 'loop':
       return { done: [1, 2, 3], iterations: 3 };
+    case 'collect': {
+      // 목 모드는 반복을 한 번만 흘리므로 한 건만 모인다
+      const item = { filename: '계약서.pdf', text: '검토 결과(목 데이터)' };
+      return { items: [item], count: 1, text: item.text, next: null };
+    }
     case 'parallel':
       return { a: 'A', b: 'B' };
     case 'approval':
