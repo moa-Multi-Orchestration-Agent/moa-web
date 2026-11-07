@@ -32,4 +32,17 @@ describe('근로계약서 검토용 노드', () => {
     expect(out.items[0]!.filename).toBe('계약서.pdf');
     expect(out.next).toBeNull();
   });
+
+  it('llm.risk_check: 체크리스트 6개와 최저임금 기준값이 config에 있다', () => {
+    const block = catalog().blocks.find((b) => b.id === 'llm.risk_check')!;
+    expect(block).toMatchObject({ group: 'llm', type: 'risk_check' });
+    const cfg = block.config as { checklist: { title: string }[]; criteria: { value: string }[]; skip_labels: string[] };
+    expect(cfg.checklist.map((c) => c.title)).toEqual(['위약금·손해배상 예정', '임금·포괄임금', '근로시간·연장근로', '휴일·연차휴가', '해고·계약 해지', '수습·계약기간']);
+    expect(cfg.criteria.map((c) => c.value)).toEqual(['10,320원', '2,156,880원']);
+    expect(cfg.skip_labels).toEqual(['근로계약서 아님']);
+    expect(nodeColor('risk_check')).toBe(NODE_GROUP_COLORS.llm);
+    const out = fakeOutput(makeNode('n4', 'llm.risk_check', '검사', 0, 0), {}) as { text: string };
+    expect(out.text.match(/\[항목\] /g)).toHaveLength(6);
+    expect(out.text).toContain('형식 확인용');
+  });
 });

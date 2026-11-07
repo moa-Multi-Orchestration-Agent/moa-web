@@ -30,6 +30,7 @@ export const NODE_TYPE_GROUP: Record<string, NodeGroup> = {
   approval: 'human',
   doc_extract: 'knowledge',
   collect: 'logic',
+  risk_check: 'llm',
 };
 
 export function nodeColor(type: string) {

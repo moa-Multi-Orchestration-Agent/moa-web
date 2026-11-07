@@ -106,6 +106,21 @@ export function fakeOutput(n: NodeDef, input: Record<string, unknown>): unknown 
       return { branch: 'true', value: 0.82 };
     case 'loop':
       return { done: [1, 2, 3], iterations: 3 };
+    case 'risk_check': {
+      // 목 모드: 형식 확인용 고정 검토문(실제 검사가 아님)
+      const titles = ((n.config.checklist as { title: string }[] | undefined) ?? []).map((c) => c.title);
+      const text = [
+        '## 계약서.pdf — 기간제 근로계약서',
+        '⚠ 가짜 모델(FakeLLM) 결과 — 형식 확인용이며 실제 검토 결과가 아닙니다.',
+        '총평: 목 데이터입니다.',
+        `위험도 요약: 높음 0 · 중간 0 · 낮음 0 · 위험 없음 ${titles.length} (추가 발견 0건)`,
+        '',
+        ...titles.flatMap((t) => [`[항목] ${t}`, '- 해당 조항 원문: 해당 조항 없음', '- 위험도: 위험 없음', '- 이유: -', '- 수정 제안: -', '']),
+        '[추가 발견]',
+        '- 없음',
+      ].join('\n');
+      return { review: { filename: '계약서.pdf', fake_llm: true, text }, text };
+    }
     case 'collect': {
       // 목 모드는 반복을 한 번만 흘리므로 한 건만 모인다
       const item = { filename: '계약서.pdf', text: '검토 결과(목 데이터)' };

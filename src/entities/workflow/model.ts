@@ -31,6 +31,7 @@ export const NODE_TYPES = [
   'approval',
   'doc_extract',
   'collect',
+  'risk_check',
 ] as const;
 export const nodeTypeSchema = z.enum(NODE_TYPES);
 export type NodeType = z.infer<typeof nodeTypeSchema>;
