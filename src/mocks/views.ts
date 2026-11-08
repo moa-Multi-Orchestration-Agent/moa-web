@@ -3,6 +3,7 @@ import { BUILTIN_SKILLS } from '@/entities/agent/model';
 import { PUBLIC_API_ORIGIN } from '@/entities/endpoint/model';
 import type { AgentDetailRow, AgentRow, AgentSkillRow } from '@/entities/agent/model';
 import type { WorkflowDetailRow, WorkflowRow } from '@/entities/workflow/model';
+import { inputFieldsOf } from '@/entities/workflow/graph';
 import type { ApprovalRow, RunDetailRow, RunRow } from '@/entities/run/model';
 import type { EndpointRow } from '@/entities/endpoint/model';
 import type { ProductRow } from '@/entities/product/model';
@@ -29,7 +30,9 @@ export function workflowView(w: DbWorkflow): WorkflowRow {
   const runs = db.runs.filter((r) => r.workflow_id === w.id);
   const lastRun = runs.reduce<string | null>((acc, r) => (!acc || r.created_at > acc ? r.created_at : acc), null);
   const agentIds = new Set(agents.map((a) => a.id));
-  const deployed = db.endpoints.some((e) => agentIds.has(e.agent_id) && e.is_active && db.agents.find((a) => a.id === e.agent_id)?.primary_workflow_id === w.id);
+  const deployed = db.endpoints.some((e) => e.is_active && (e.workflow_id === w.id || (!!e.agent_id && agentIds.has(e.agent_id) && db.agents.find((a) => a.id === e.agent_id)?.primary_workflow_id === w.id)));
+  const hasInput = w.draft.nodes.some((n) => n.type === 'input');
+  const hasOutput = w.draft.nodes.some((n) => n.type === 'output');
   const listed = db.market_products.some((p) => p.agent_id && agentIds.has(p.agent_id) && p.seller_ws === w.workspace_id && p.status === 'published');
   return {
     id: w.id,
@@ -51,6 +54,8 @@ export function workflowView(w: DbWorkflow): WorkflowRow {
     deployed,
     listed,
     mini: w.draft.nodes.slice(0, 8).map((n) => n.type),
+    run_mode: hasInput && hasOutput && ['manual', 'agent'].includes(triggerOf(w)) ? 'chat' : 'log',
+    input_fields: inputFieldsOf(w.draft),
   };
 }
 
@@ -160,12 +165,15 @@ export function endpointView(e: DbEndpoint, withSecret = false): EndpointRow {
   const ws = db.workspaces.find((w) => w.id === e.workspace_id);
   const agent = db.agents.find((a) => a.id === e.agent_id);
   const version = db.workflow_versions.find((v) => v.id === e.workflow_version_id);
+  const flow = db.workflows.find((w) => w.id === (e.workflow_id ?? version?.workflow_id));
   const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
   const calls = db.runs.filter((r) => r.endpoint_id === e.id && r.created_at >= weekAgo).length;
   const { webhook_secret, ...rest } = e;
   return {
     ...rest,
-    agent_name: agent?.name ?? '—',
+    workflow_id: flow?.id ?? null,
+    target: e.agent_id ? 'agent' : 'workflow',
+    agent_name: agent?.name ?? flow?.name ?? '—',
     workspace_slug: ws?.slug ?? '',
     version: version?.version ?? 1,
     call_count_7d: calls * 37 + (e.slug.length % 7) * 11,

@@ -111,6 +111,20 @@ export const workflowRowSchema = z
     deployed: z.boolean(),
     listed: z.boolean(),
     mini: z.array(z.string()).optional(),
+    /** 목록 실행 버튼: chat = 입력창에 적고 답 받기(수동 입력 + 출력 노드), log = 실행 후 로그 화면 */
+    run_mode: z.enum(['chat', 'log']).optional(),
+    input_fields: z
+      .array(
+        z.object({
+          name: z.string(),
+          type: z.enum(['string', 'number', 'integer', 'boolean', 'array', 'object']).catch('string'),
+          required: z.boolean().optional(),
+          description: z.string().optional(),
+          enum: z.array(z.string()).optional(),
+          default: z.unknown().optional(),
+        }),
+      )
+      .optional(),
   })
   ;
 export type WorkflowRow = z.infer<typeof workflowRowSchema>;

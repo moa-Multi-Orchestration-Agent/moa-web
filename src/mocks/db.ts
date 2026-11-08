@@ -169,7 +169,9 @@ export interface DbEndpoint {
   id: string;
   workspace_id: string;
   slug: string;
-  agent_id: string;
+  /** 워크플로만 배포했으면 null(workflow_id 사용) */
+  agent_id: string | null;
+  workflow_id?: string | null;
   workflow_version_id: string;
   mode: 'sync' | 'async';
   input_schema: Record<string, unknown>;
