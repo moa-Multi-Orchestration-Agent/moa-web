@@ -22,6 +22,7 @@ const LLM_OUT = [p('text', 'string'), p('json', 'object')];
 /** 근로계약서 위험 검사 기본 설정. 체크리스트·기준값을 코드가 아닌 노드 config로 둔다(백엔드 카탈로그와 같은 값). */
 const RISK_CHECK_CONFIG: Record<string, unknown> = {
   model: 'claude-sonnet-4',
+  params: { max_tokens: 8192 },
   document: '',
   contract_kind: '근로계약서',
   checklist: [
