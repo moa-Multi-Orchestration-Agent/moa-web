@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEndpoints } from '@/entities/endpoint';
+import { endpointsOfWorkflow, useEndpoints } from '@/entities/endpoint';
 import { useRuns } from '@/entities/run';
 import type { WorkflowDetail } from '@/entities/workflow';
 import { copy } from '@/shared/lib/copy';
@@ -58,22 +58,19 @@ export function WorkflowRunsTab({ workflowId }: { workflowId: string }) {
 
 export function WorkflowDeployTab({ wf }: { wf: WorkflowDetail }) {
   const eps = useEndpoints();
-  const agentIds = new Set(wf.agents.map((a) => a.id));
-  const mine = (eps.data ?? []).filter((e) => agentIds.has(e.agentId));
+  const mine = endpointsOfWorkflow(eps.data ?? [], wf);
   return (
     <div className="mx-auto w-full max-w-4xl space-y-4 p-6">
       <p className="bg-primary-soft text-primary rounded-lg px-4 py-3 text-sm">
-        워크플로는 연결된 에이전트를 통해 배포됩니다(엔드포인트는 에이전트 단위, design.md endpoints.agent_id). 배포 시점의 워크플로 버전이 고정됩니다.
+        워크플로를 바로 배포하거나, 이 워크플로를 쓰는 에이전트로 배포할 수 있습니다. 배포 시점의 워크플로 버전이 고정되고, 입력 노드의 칸이 API 요청 본문(JSON)의 필드가 됩니다.
       </p>
-      <SectionCard title="연결된 에이전트의 엔드포인트">
+      <SectionCard title="이 워크플로의 엔드포인트">
         {eps.isPending ? (
           <ListSkeleton rows={2} />
         ) : eps.isError ? (
           <ErrorState compact error={eps.error} onRetry={() => void eps.refetch()} />
-        ) : wf.agents.length === 0 ? (
-          <EmptyState title="연결된 에이전트가 없어요" description="에이전트 빌더에서 이 워크플로를 연결하면 배포할 수 있습니다." action={<Link href="/studio/new?type=agent" className="text-primary text-sm font-semibold">새 에이전트 만들기 →</Link>} />
         ) : mine.length === 0 ? (
-          <EmptyState title="아직 배포하지 않았어요" description={`${wf.agents.map((a) => a.name).join(', ')}을(를) 배포하면 여기 보입니다.`} action={<Link href={`/deploy?new=1&agent=${wf.agents[0]!.id}`} className="text-primary text-sm font-semibold">배포하기 →</Link>} />
+          <EmptyState title="아직 배포하지 않았어요" description="배포하면 API 주소가 생기고 외부에서 POST로 실행할 수 있습니다." action={<Link href={`/deploy?new=1&workflow=${wf.id}`} className="text-primary text-sm font-semibold">배포하기 →</Link>} />
         ) : (
           <ul className="divide-y">
             {mine.map((e) => (

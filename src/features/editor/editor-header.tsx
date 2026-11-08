@@ -125,7 +125,7 @@ export function EditorHeader({
             {running ? <Loader2 className="animate-spin" aria-hidden /> : <Play aria-hidden />} 테스트 실행
           </Button>
         </Guarded>
-        <Guarded allowed={canDeploy && !!deployHref} reason={!deployHref ? '에이전트에 연결해야 배포할 수 있습니다(design: endpoints.agent_id).' : readOnlyReason}>
+        <Guarded allowed={canDeploy && !!deployHref} reason={!deployHref ? '배포 정보를 불러오는 중입니다.' : readOnlyReason}>
           <Button size="sm" asChild={canDeploy && !!deployHref}>
             {canDeploy && deployHref ? <Link href={deployHref}>배포하기</Link> : <span>배포하기</span>}
           </Button>

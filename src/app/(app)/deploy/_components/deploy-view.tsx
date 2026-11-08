@@ -5,7 +5,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
-import { useEndpoints, useUpdateEndpoint } from '@/entities/endpoint';
+import { endpointsOfWorkflow, useEndpoints, useUpdateEndpoint } from '@/entities/endpoint';
 import { useWorkflows } from '@/entities/workflow';
 import { useCurrentWorkspace } from '@/entities/workspace';
 import { ApiKeysCard } from '@/features/deploy/api-keys-card';
@@ -25,7 +25,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 const NewDeployDialog = dynamic(() => import('@/features/deploy/new-deploy-dialog').then((m) => m.NewDeployDialog), { ssr: false });
 
 export function DeployView() {
-  const [s, set] = useSearchState({ tab: 'agents', new: '', agent: '' });
+  const [s, set] = useSearchState({ tab: 'agents', new: '', agent: '', workflow: '' });
   const eps = useEndpoints();
   const wfs = useWorkflows({ limit: 100 });
   const update = useUpdateEndpoint();
@@ -55,7 +55,7 @@ export function DeployView() {
         value={s.tab}
         onChange={(v) => set({ tab: v })}
         items={[
-          { value: 'agents', label: `에이전트 ${list.length}` },
+          { value: 'agents', label: `엔드포인트 ${list.length}` },
           { value: 'workflows', label: `워크플로 ${wfs.items.length}` },
         ]}
       />
@@ -66,13 +66,13 @@ export function DeployView() {
           ) : eps.isError ? (
             <div className="p-5"><ErrorState error={eps.error} onRetry={() => void eps.refetch()} /></div>
           ) : list.length === 0 ? (
-            <div className="p-5"><EmptyState title="아직 배포한 에이전트가 없어요" description="배포하면 외부에서 API로 부를 수 있습니다." /></div>
+            <div className="p-5"><EmptyState title="아직 배포한 게 없어요" description="워크플로나 에이전트를 배포하면 외부에서 API로 부를 수 있습니다." /></div>
           ) : (
             <Table>
               <TableHeader className="bg-surface">
                 <TableRow>
                   <TableHead>슬러그</TableHead>
-                  <TableHead>에이전트</TableHead>
+                  <TableHead>대상</TableHead>
                   <TableHead>모드</TableHead>
                   <TableHead>버전</TableHead>
                   <TableHead className="text-right">호출(7일)</TableHead>
@@ -89,7 +89,12 @@ export function DeployView() {
                         /{e.slug}
                       </Link>
                     </TableCell>
-                    <TableCell>{e.agentName}</TableCell>
+                    <TableCell>
+                      <span className="flex items-center gap-1.5">
+                        <Badge variant="gray">{e.agentId ? '에이전트' : '워크플로'}</Badge>
+                        {e.agentName}
+                      </span>
+                    </TableCell>
                     <TableCell>{e.mode === 'sync' ? '동기' : '비동기'}</TableCell>
                     <TableCell>v{e.version}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatNumber(e.callCount7d)}</TableCell>
@@ -109,7 +114,7 @@ export function DeployView() {
         </SectionCard>
       ) : (
         <SectionCard title="워크플로 배포" bodyClassName="p-0 pt-3">
-          <p className="bg-primary-soft text-primary mx-5 rounded-md px-3 py-2 text-sm">워크플로는 연결된 에이전트의 엔드포인트로 배포됩니다(엔드포인트는 에이전트 단위).</p>
+          <p className="bg-primary-soft text-primary mx-5 rounded-md px-3 py-2 text-sm">워크플로를 바로 배포하면 API 주소가 생기고, 입력 노드의 칸을 JSON 본문으로 POST해 실행합니다.</p>
           {wfs.isPending ? (
             <div className="p-5"><ListSkeleton rows={3} /></div>
           ) : wfs.isError ? (
@@ -125,20 +130,20 @@ export function DeployView() {
               </TableHeader>
               <TableBody>
                 {wfs.items.map((w) => {
-                  const mine = list.filter((e) => w.agents.some((a) => a.id === e.agentId));
+                  const mine = endpointsOfWorkflow(list, w);
                   return (
                     <TableRow key={w.id}>
                       <TableCell>
                         <Link href={`/workflows/${w.id}/edit`} className="font-semibold hover:underline">{w.name}</Link>
                       </TableCell>
-                      <TableCell className="text-muted">{w.agents.map((a) => a.name).join(', ') || '없음 — 에이전트에 연결해야 배포할 수 있어요'}</TableCell>
+                      <TableCell className="text-muted">{w.agents.map((a) => a.name).join(', ') || '없음'}</TableCell>
                       <TableCell>
                         {mine.length ? (
                           mine.map((e) => (
                             <Link key={e.id} href={`/deploy/${e.id}`} className="mr-2 font-mono text-xs hover:underline">/{e.slug}</Link>
                           ))
-                        ) : w.agents[0] && can('deploy') ? (
-                          <Button size="xs" variant="outline" onClick={() => set({ new: '1', agent: w.agents[0]!.id })}>배포하기</Button>
+                        ) : can('deploy') ? (
+                          <Button size="xs" variant="outline" onClick={() => set({ new: '1', workflow: w.id })}>배포하기</Button>
                         ) : (
                           <span className="text-muted">—</span>
                         )}
@@ -157,9 +162,10 @@ export function DeployView() {
       <NewDeployDialog
         open={dialogOpen}
         initialAgentId={s.agent || null}
+        initialWorkflowId={s.workflow || null}
         onOpenChange={(o) => {
           setOpenManual(o);
-          if (!o) set({ new: '', agent: '' });
+          if (!o) set({ new: '', agent: '', workflow: '' });
         }}
       />
     </PageContainer>
