@@ -62,6 +62,27 @@ export const contextHandlers = [
     blk.updated_at = nowIso();
     return json(blk);
   }),
+  // 확장: 블록 삭제 (If-Match, 고정 블록은 거부, 요약을 지우면 원문을 다시 켠다)
+  http.delete(`${API}/context/blocks/:id`, ({ request, params }) => {
+    const ctx = guard(request, 'maker');
+    if (isResponse(ctx)) return ctx;
+    const blk = db.context_blocks.find((b) => b.id === params.id);
+    const s = blk ? sessionOf(ctx.wsId, blk.session_id) : null;
+    if (!blk || !s) return problem('MOA-CTX-001');
+    const expected = ifMatch(request);
+    if (expected === null) return problem('MOA-VALIDATION', 'If-Match 헤더가 필요합니다.', {}, 428);
+    if (expected !== blk.version) return problem('MOA-CTX-003', `블록 버전이 맞지 않습니다. (내 버전 ${expected}, 서버 버전 ${blk.version})`, { current: blk });
+    if (blk.pinned) return problem('MOA-CTX-002', '고정된 블록은 지울 수 없습니다. 먼저 고정을 푸세요.');
+    for (const o of db.context_blocks) {
+      if (o.compressed_into === blk.id) {
+        o.compressed_into = null;
+        o.enabled = true;
+        o.version += 1;
+      }
+    }
+    db.context_blocks.splice(db.context_blocks.indexOf(blk), 1);
+    return new Response(null, { status: 204 });
+  }),
   http.get(`${API}/context/sessions/:id/snapshots`, ({ request, params }) => {
     const ctx = guard(request);
     if (isResponse(ctx)) return ctx;

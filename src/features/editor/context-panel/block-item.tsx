@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Pin } from 'lucide-react';
+import { ChevronDown, ChevronRight, Pin, Trash2 } from 'lucide-react';
 import { ROLE_LABEL, type BlockPatch, type ContextBlockRow } from '@/entities/context';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Label } from '@/shared/ui/label';
 import { Slider } from '@/shared/ui/slider';
@@ -15,16 +16,19 @@ export function BlockItem({
   b,
   sources,
   onPatch,
+  onDelete,
   readOnly,
   pending,
 }: {
   b: ContextBlockRow;
   sources: ContextBlockRow[];
   onPatch: (b: ContextBlockRow, p: BlockPatch) => void;
+  onDelete?: (b: ContextBlockRow) => void;
   readOnly?: boolean;
   pending?: boolean;
 }) {
   const [edit, setEdit] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [content, setContent] = useState(b.content);
   const [priority, setPriority] = useState(b.priority);
@@ -60,6 +64,19 @@ export function BlockItem({
           <Button size="sm" variant="outline" onClick={() => { setContent(b.content); setPriority(b.priority); setEdit(true); }} disabled={readOnly || pending} aria-label={`${preview} 수정`}>
             수정
           </Button>
+          {onDelete ? (
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              className="text-danger hover:text-danger"
+              onClick={() => setConfirmDelete(true)}
+              disabled={readOnly || pending || b.pinned}
+              aria-label={`${preview} 삭제`}
+              title={b.pinned ? '고정을 풀어야 지울 수 있어요' : '삭제'}
+            >
+              <Trash2 aria-hidden />
+            </Button>
+          ) : null}
         </div>
       </div>
       {b.role === 'summary' && sources.length ? (
@@ -82,6 +99,22 @@ export function BlockItem({
             </ul>
           ) : null}
         </div>
+      ) : null}
+      {onDelete ? (
+        <ConfirmDialog
+          open={confirmDelete}
+          onOpenChange={setConfirmDelete}
+          title={`${ROLE_LABEL[b.role]} 블록을 지울까요?`}
+          description={
+            b.role === 'summary' && sources.length
+              ? `이 요약을 지우면 요약에 묶였던 원문 ${sources.length}개가 다시 켜집니다. 지운 블록은 되돌릴 수 없어요(스냅샷이 있으면 복원할 수 있어요).`
+              : '다음 실행부터 모델에 들어가지 않습니다. 지운 블록은 되돌릴 수 없어요(스냅샷이 있으면 복원할 수 있어요). 잠시만 빼려면 "끄기"를 쓰세요.'
+          }
+          onConfirm={() => {
+            onDelete(b);
+            setConfirmDelete(false);
+          }}
+        />
       ) : null}
       <Dialog open={edit} onOpenChange={setEdit}>
         <DialogContent>
