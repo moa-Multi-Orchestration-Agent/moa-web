@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { TRIGGER_LABEL, type Workflow } from '@/entities/workflow';
+import { useCurrentWorkspace } from '@/entities/workspace';
+import { WorkflowRunButton } from '@/features/workflow-run';
 import { copy } from '@/shared/lib/copy';
 import { relativeTime } from '@/shared/lib/format';
 import { Badge } from '@/shared/ui/badge';
@@ -22,6 +24,7 @@ function triggerLabel(w: Workflow) {
 
 export function WorkflowTable({ items }: { items: Workflow[] }) {
   const c = copy.studio.columns;
+  const { can } = useCurrentWorkspace();
   return (
     <div className="bg-card overflow-hidden rounded-lg border">
       <Table>
@@ -33,6 +36,9 @@ export function WorkflowTable({ items }: { items: Workflow[] }) {
             <TableHead>{c.agents}</TableHead>
             <TableHead>{c.status}</TableHead>
             <TableHead>{c.lastRun}</TableHead>
+            <TableHead className="w-20">
+              <span className="sr-only">실행</span>
+            </TableHead>
             <TableHead className="w-10">
               <span className="sr-only">메뉴</span>
             </TableHead>
@@ -61,6 +67,9 @@ export function WorkflowTable({ items }: { items: Workflow[] }) {
                 </TableCell>
                 <TableCell className="text-muted">{w.lastRunAt ? relativeTime(w.lastRunAt) : '—'}</TableCell>
                 <TableCell>
+                  <WorkflowRunButton workflow={w} disabled={!can('edit')} />
+                </TableCell>
+                <TableCell>
                   <ItemMenu kind="workflow" id={w.id} name={w.name} href={`/workflows/${w.id}/edit`} />
                 </TableCell>
               </TableRow>
@@ -74,6 +83,7 @@ export function WorkflowTable({ items }: { items: Workflow[] }) {
 
 export function WorkflowCard({ w }: { w: Workflow }) {
   const s = statusOf(w);
+  const { can } = useCurrentWorkspace();
   return (
     <article className="bg-card flex flex-col rounded-lg border p-5" aria-label={w.name}>
       <header className="flex items-start gap-2">
@@ -100,9 +110,7 @@ export function WorkflowCard({ w }: { w: Workflow }) {
         <Button variant="outline" asChild>
           <Link href={`/workflows/${w.id}/edit`}>{copy.studio.edit}</Link>
         </Button>
-        <Button variant="outline" asChild>
-          <Link href={`/workflows/${w.id}/edit?run=1`}>{copy.studio.test}</Link>
-        </Button>
+        <WorkflowRunButton workflow={w} size="default" full disabled={!can('edit')} />
       </div>
     </article>
   );
