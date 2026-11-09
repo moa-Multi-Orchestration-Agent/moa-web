@@ -45,7 +45,9 @@ export function createRun(wsId: string, b: CreateRunBody): DbRun | Response {
   if (isChat) {
     definition = agentPlan(agent!.id, String(b.input!.message));
   } else {
-    workflowId = workflowId ?? agent?.primary_workflow_id ?? null;
+    const ep = b.endpoint_id ? db.endpoints.find((e) => e.id === b.endpoint_id) : undefined;
+    const epWorkflow = ep ? db.workflow_versions.find((v) => v.id === ep.workflow_version_id)?.workflow_id : undefined;
+    workflowId = workflowId ?? agent?.primary_workflow_id ?? epWorkflow ?? null;
     const w = workflowId ? db.workflows.find((x) => x.id === workflowId && x.workspace_id === wsId && !x.deleted_at) : null;
     if (!w && !(b.label && b.definition)) return problem('MOA-VALIDATION', '실행할 워크플로가 없습니다. 에이전트에 워크플로를 연결하세요.', {}, 422);
     definition = b.definition ?? w!.draft;

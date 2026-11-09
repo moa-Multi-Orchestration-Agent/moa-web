@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, type Page } from '@/shared/lib/api-client';
 import { patchEverywhere, restore, wsKey } from '@/shared/lib/query';
-import { endpointRowSchema, toEndpoint, type EndpointForm, type EndpointRow, type EndpointStat, type InvokeResult, type WebhookDelivery } from './model';
+import { endpointBody, endpointRowSchema, toEndpoint, type EndpointForm, type EndpointRow, type EndpointStat, type InvokeResult, type WebhookDelivery } from './model';
 
 export const endpointKeys = {
   all: ['endpoints'] as const,
@@ -33,7 +33,7 @@ export function useEndpoint(id: string | null | undefined) {
 export function useCreateEndpoint() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: EndpointForm) => api.post<EndpointRow>('/endpoints', { ...input, webhook_url: input.webhook_url || null }),
+    mutationFn: (input: EndpointForm) => api.post<EndpointRow>('/endpoints', endpointBody(input)),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: endpointKeys.all });
       void qc.invalidateQueries({ queryKey: ['agents'] });

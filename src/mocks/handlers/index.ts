@@ -9,6 +9,8 @@ import { integrationHandlers } from './integrations';
 import { marketHandlers } from './market';
 import { middleware } from './middleware';
 import { runHandlers } from './runs';
+import { modelHandlers } from './models';
+import { teamHandlers } from './team';
 import { templateHandlers } from './templates';
 import { workflowHandlers } from './workflows';
 import { workspaceHandlers } from './workspaces';
@@ -17,7 +19,9 @@ import { workspaceHandlers } from './workspaces';
 export const handlers: RequestHandler[] = [
   ...middleware,
   ...authHandlers,
+  ...teamHandlers,
   ...workspaceHandlers,
+  ...modelHandlers,
   ...agentHandlers,
   ...workflowHandlers,
   ...runHandlers,

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ReactFlowProvider, useReactFlow } from '@xyflow/react';
 import { useRouter } from 'next/navigation';
-import { useEndpoints } from '@/entities/endpoint';
+import { endpointsOfWorkflow, useEndpoints } from '@/entities/endpoint';
 import { inputFieldsOf, useNodeCatalog, useWorkflow, type Block } from '@/entities/workflow';
 import { useCurrentWorkspace } from '@/entities/workspace';
 import { useLeaveGuard } from '@/shared/hooks/use-leave-guard';
@@ -124,8 +124,8 @@ function EditorBody({ workflowId }: { workflowId: string }) {
     );
   }
   const data = wf.data!;
-  const linkedEndpoint = (endpoints.data ?? []).find((e) => data.agents.some((a) => a.id === e.agentId));
-  const deployHref = linkedEndpoint ? `/deploy/${linkedEndpoint.id}` : data.agents[0] ? `/deploy?new=1&agent=${data.agents[0].id}` : null;
+  const linkedEndpoint = endpointsOfWorkflow(endpoints.data ?? [], data)[0];
+  const deployHref = linkedEndpoint ? `/deploy/${linkedEndpoint.id}` : `/deploy?new=1&workflow=${data.id}`;
   const readOnlyReason = copy.common.viewerReason;
 
   return (

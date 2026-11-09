@@ -81,7 +81,7 @@ export function UserMenu({ onShortcuts, variant = 'avatar' }: { onShortcuts: () 
           </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => router.push('/settings?tab=general')}>
+        <DropdownMenuItem onSelect={() => router.push('/settings?tab=account')}>
           <Settings aria-hidden /> {copy.topbar.profile}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onShortcuts}>

@@ -54,6 +54,26 @@ export function usePatchBlock(sessionId: string) {
   });
 }
 
+/** 블록 삭제 (DELETE + If-Match). 요약 블록을 지우면 묶였던 원문이 다시 켜진다. */
+export function useDeleteBlock(sessionId: string) {
+  const qc = useQueryClient();
+  const key = contextKeys.blocks(sessionId);
+  return useMutation({
+    mutationFn: (block: ContextBlockRow) => api.delete(`/context/blocks/${block.id}`, { ifMatch: block.version }),
+    onMutate: async (block) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<ContextBlockRow[]>(key);
+      qc.setQueryData<ContextBlockRow[]>(key, (rows) => rows?.filter((b) => b.id !== block.id));
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => qc.setQueryData(key, ctx?.prev),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: key });
+      void qc.invalidateQueries({ queryKey: contextKeys.session(sessionId) });
+    },
+  });
+}
+
 export function useSnapshots(sessionId: string | null | undefined) {
   return useQuery({
     queryKey: contextKeys.snapshots(sessionId ?? '_'),

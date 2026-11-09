@@ -103,3 +103,39 @@ export function useRemoveMember(workspaceId: string) {
   });
 }
 
+
+// ===== 팀 만들기·삭제·나가기·소유권 이전 =====
+export function useCreateWorkspace() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { name: string; slug?: string }) => api.post<WorkspaceRow>('/workspaces', input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: workspaceKeys.all }),
+  });
+}
+
+export function useDeleteWorkspace() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, confirmName }: { id: string; confirmName: string }) => api.delete(`/workspaces/${id}`, { body: { confirm_name: confirmName } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: workspaceKeys.all }),
+  });
+}
+
+export function useLeaveWorkspace() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.post(`/workspaces/${id}/leave`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: workspaceKeys.all }),
+  });
+}
+
+export function useTransferOwner(workspaceId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => api.post<MemberRow>(`/workspaces/${workspaceId}/transfer`, { user_id: userId }),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: workspaceKeys.all });
+      void qc.invalidateQueries({ queryKey: workspaceKeys.members(workspaceId) });
+    },
+  });
+}

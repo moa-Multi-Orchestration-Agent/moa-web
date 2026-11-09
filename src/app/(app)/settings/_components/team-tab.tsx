@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, ChevronDown, Loader2, Minus, Plus, UserMinus } from 'lucide-react';
+import { Check, ChevronDown, Crown, Loader2, Minus, Plus, UserMinus, UserX } from 'lucide-react';
 import { toast } from 'sonner';
-import { inviteFormSchema, useCurrentWorkspace, useInvite, useMembers, useRemoveMember, useUpdateMemberRole, type InviteForm, type Role } from '@/entities/workspace';
+import { inviteFormSchema, useCurrentWorkspace, useInvite, useMembers, useRemoveMember, useTransferOwner, useUpdateMemberRole, type InviteForm, type Role } from '@/entities/workspace';
 import { useMe } from '@/entities/user';
 import { isApiError } from '@/shared/lib/api-client';
 import { copy } from '@/shared/lib/copy';
@@ -12,7 +12,7 @@ import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
 import { Guarded } from '@/shared/ui/guarded';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
@@ -20,6 +20,7 @@ import { SectionCard } from '@/shared/ui/page-header';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { ErrorState, ListSkeleton } from '@/shared/ui/states';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table';
+import { TeamDangerZone } from './team-danger-zone';
 
 const ROLE_BADGE: Record<Role, 'dark' | 'blue' | 'gray'> = { owner: 'dark', admin: 'blue', maker: 'gray', viewer: 'gray' };
 
@@ -45,7 +46,9 @@ export function TeamTab() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<InviteForm>({ email: '', role: 'maker' });
   const [err, setErr] = useState<string | null>(null);
-  const [removing, setRemoving] = useState<{ id: string; name: string } | null>(null);
+  const [removing, setRemoving] = useState<{ id: string; name: string; invited: boolean } | null>(null);
+  const [transferring, setTransferring] = useState<{ id: string; name: string } | null>(null);
+  const transfer = useTransferOwner(workspace?.id ?? '');
 
   const submit = () => {
     const r = inviteFormSchema.safeParse(form);
@@ -80,11 +83,15 @@ export function TeamTab() {
                     </TableCell>
                     <TableCell className="space-x-1">
                       <Badge variant={ROLE_BADGE[m.role]}>{copy.roles[m.role]}</Badge>
-                      {m.invited ? <Badge variant="orange">초대 대기</Badge> : null}
+                      {m.invited ? <Badge variant="orange">{copy.team.invitePending}</Badge> : null}
                     </TableCell>
                     <TableCell className="text-muted">{m.lastSeenAt ? relativeTime(m.lastSeenAt) : '—'}</TableCell>
                     <TableCell>
-                      {isOwner ? <span className="text-muted text-xs">소유자는 1명입니다 · 이전은 소유자만</span> : (
+                      {isOwner ? <span className="text-muted text-xs">소유자는 1명입니다 · 이전은 소유자만</span> : m.invited ? (
+                        <Guarded allowed={can('invite')} reason={copy.common.adminOnly}>
+                          <Button size="sm" variant="ghost" onClick={() => setRemoving({ id: m.userId, name: m.user.email, invited: true })}><UserX aria-hidden /> {copy.team.cancelInvite}</Button>
+                        </Guarded>
+                      ) : (
                         <div className="flex gap-1">
                           <DropdownMenu>
                             <Guarded allowed={editable} reason={copy.common.adminOnly}>
@@ -96,10 +103,15 @@ export function TeamTab() {
                               <DropdownMenuRadioGroup value={m.role} onValueChange={(v) => change.mutate({ userId: m.userId, role: v as Role }, { onSuccess: () => toast.success('역할을 바꿨습니다.'), onError: (e) => toast.error(e.message) })}>
                                 {(['admin', 'maker', 'viewer'] as const).map((r) => <DropdownMenuRadioItem key={r} value={r}>{copy.roles[r]}</DropdownMenuRadioItem>)}
                               </DropdownMenuRadioGroup>
+                              {role === 'owner' ? (
+                                <DropdownMenuItem onSelect={() => setTransferring({ id: m.userId, name: m.user.display_name })}>
+                                  <Crown className="size-4" aria-hidden /> {copy.team.transfer}
+                                </DropdownMenuItem>
+                              ) : null}
                             </DropdownMenuContent>
                           </DropdownMenu>
                           <Guarded allowed={editable} reason={copy.common.adminOnly}>
-                            <Button size="icon-sm" variant="ghost" onClick={() => setRemoving({ id: m.userId, name: m.user.display_name })} aria-label={`${m.user.display_name} 내보내기`}><UserMinus aria-hidden /></Button>
+                            <Button size="icon-sm" variant="ghost" onClick={() => setRemoving({ id: m.userId, name: m.user.display_name, invited: false })} aria-label={`${m.user.display_name} 내보내기`}><UserMinus aria-hidden /></Button>
                           </Guarded>
                         </div>
                       )}
@@ -127,7 +139,7 @@ export function TeamTab() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="space-y-4">
-            <DialogHeader><DialogTitle>팀원 초대</DialogTitle><DialogDescription>초대 메일을 보냅니다(목: 바로 멤버 목록에 &quot;초대 대기&quot;로 추가).</DialogDescription></DialogHeader>
+            <DialogHeader><DialogTitle>팀원 초대</DialogTitle><DialogDescription>{copy.team.inviteDesc}</DialogDescription></DialogHeader>
             <div className="space-y-1.5"><Label htmlFor="inv-email">이메일</Label><Input id="inv-email" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} autoFocus /></div>
             <div className="space-y-1.5">
               <Label htmlFor="inv-role">역할</Label>
@@ -141,7 +153,26 @@ export function TeamTab() {
           </form>
         </DialogContent>
       </Dialog>
-      <ConfirmDialog open={!!removing} onOpenChange={(o) => !o && setRemoving(null)} title={`${removing?.name}님을 내보낼까요?`} description="이 워크스페이스에 더 이상 접근할 수 없습니다." confirmLabel="내보내기" pending={remove.isPending} onConfirm={() => remove.mutate(removing!.id, { onSuccess: () => toast.success('내보냈습니다.'), onError: (e) => toast.error(e.message), onSettled: () => setRemoving(null) })} />
+      <ConfirmDialog
+        open={!!removing}
+        onOpenChange={(o) => !o && setRemoving(null)}
+        title={removing?.invited ? `${removing.name} 초대를 취소할까요?` : `${removing?.name}님을 내보낼까요?`}
+        description={removing?.invited ? '받은 사람의 알림에서 수락 버튼이 사라집니다.' : '이 워크스페이스에 더 이상 접근할 수 없습니다.'}
+        confirmLabel={removing?.invited ? copy.team.cancelInvite : '내보내기'}
+        pending={remove.isPending}
+        onConfirm={() => remove.mutate(removing!.id, { onSuccess: () => toast.success(removing?.invited ? '초대를 취소했습니다.' : '내보냈습니다.'), onError: (e) => toast.error(e.message), onSettled: () => setRemoving(null) })}
+      />
+      <ConfirmDialog
+        open={!!transferring}
+        onOpenChange={(o) => !o && setTransferring(null)}
+        title={copy.team.transferConfirm(transferring?.name ?? '')}
+        description={copy.team.transferDesc}
+        confirmLabel={copy.team.transfer}
+        destructive={false}
+        pending={transfer.isPending}
+        onConfirm={() => transfer.mutate(transferring!.id, { onSuccess: () => toast.success(copy.team.transferred), onError: (e) => toast.error(e.message), onSettled: () => setTransferring(null) })}
+      />
+      <TeamDangerZone />
     </div>
   );
 }

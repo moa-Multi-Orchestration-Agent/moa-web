@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAgents } from '@/entities/agent';
+import { useWorkflows } from '@/entities/workflow';
 import { endpointFormSchema, PUBLIC_API_ORIGIN, RESERVED_SLUGS, SLUG_RE, useCheckSlug, useCreateEndpoint, type EndpointForm } from '@/entities/endpoint';
 import { useCurrentWorkspace } from '@/entities/workspace';
 import { useDebounced } from '@/shared/hooks/use-debounced';
@@ -16,25 +17,28 @@ import { Label } from '@/shared/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/shared/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 
-/** 이름에서 slug 후보. 한글뿐이라 비면 agent-<id 끝 4자리> */
-const slugify = (name: string, id = '') => {
+/** 이름에서 slug 후보. 한글뿐이라 비면 agent-<id 끝 4자리>(워크플로는 flow-) */
+const slugify = (name: string, id = '', prefix = 'agent') => {
   const s = name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 40);
-  return s.length >= 3 ? s : `agent-${id.slice(-4) || 'new'}`;
+  return s.length >= 3 ? s : `${prefix}-${id.slice(-4) || 'new'}`;
 };
 
 const REASON: Record<string, string> = { format: '소문자·숫자·하이픈 3~63자, 첫 글자는 영문 소문자나 숫자', reserved: '예약된 이름이라 쓸 수 없습니다', taken: '이미 쓰고 있는 슬러그입니다 (MOA-API-001)' };
 
-/** 새 배포: 에이전트 선택, slug(형식·중복 실시간 검사), 동기/비동기, 웹훅, 분당 한도 */
-export function NewDeployDialog({ open, onOpenChange, initialAgentId }: { open: boolean; onOpenChange: (o: boolean) => void; initialAgentId?: string | null }) {
+const EMPTY: EndpointForm = { target: 'agent', agent_id: '', workflow_id: '', slug: '', mode: 'sync', webhook_url: '', rate_limit_rpm: 60 };
+
+/** 새 배포: 대상(에이전트 또는 워크플로) 선택, slug(형식·중복 실시간 검사), 동기/비동기, 웹훅, 분당 한도 */
+export function NewDeployDialog({ open, onOpenChange, initialAgentId, initialWorkflowId }: { open: boolean; onOpenChange: (o: boolean) => void; initialAgentId?: string | null; initialWorkflowId?: string | null }) {
   const router = useRouter();
   const { workspace } = useCurrentWorkspace();
   const agents = useAgents({ limit: 50 });
+  const workflows = useWorkflows({ limit: 100 });
   const create = useCreateEndpoint();
-  const [form, setForm] = useState<EndpointForm>({ agent_id: '', slug: '', mode: 'sync', webhook_url: '', rate_limit_rpm: 60 });
+  const [form, setForm] = useState<EndpointForm>(EMPTY);
   const [errors, setErrors] = useState<Partial<Record<keyof EndpointForm, string>>>({});
   const [touchedSlug, setTouchedSlug] = useState(false);
   const deployable = agents.items.filter((a) => !a.apiOnly);
@@ -46,14 +50,16 @@ export function NewDeployDialog({ open, onOpenChange, initialAgentId }: { open: 
       initialized.current = false;
       return;
     }
-    if (initialized.current || agents.isPending) return;
+    if (initialized.current || agents.isPending || workflows.isPending) return;
     initialized.current = true;
+    const w = initialWorkflowId ? workflows.items.find((x) => x.id === initialWorkflowId) : undefined;
     const a = deployable.find((x) => x.id === initialAgentId);
-    setForm({ agent_id: a?.id ?? '', slug: a ? slugify(a.name, a.id) : '', mode: 'sync', webhook_url: '', rate_limit_rpm: 60 });
+    if (w) setForm({ ...EMPTY, target: 'workflow', workflow_id: w.id, slug: slugify(w.name, w.id, 'flow') });
+    else setForm({ ...EMPTY, agent_id: a?.id ?? '', slug: a ? slugify(a.name, a.id) : '' });
     setErrors({});
     setTouchedSlug(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialAgentId, agents.isPending]);
+  }, [open, initialAgentId, initialWorkflowId, agents.isPending, workflows.isPending]);
 
   const slug = useDebounced(form.slug, 300);
   const formatOk = SLUG_RE.test(slug) && !RESERVED_SLUGS.includes(slug);
@@ -89,8 +95,51 @@ export function NewDeployDialog({ open, onOpenChange, initialAgentId }: { open: 
         <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="space-y-4" noValidate>
           <DialogHeader>
             <DialogTitle>새 배포</DialogTitle>
-            <DialogDescription>에이전트의 기본 워크플로를 불변 버전으로 고정하고, 입력 노드의 필드로 API 스키마를 만듭니다.</DialogDescription>
+            <DialogDescription>워크플로(에이전트면 기본 워크플로)를 불변 버전으로 고정하고, 입력 노드의 필드로 API 입력 형식을 만듭니다.</DialogDescription>
           </DialogHeader>
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium">배포 대상</legend>
+            <RadioGroup
+              value={form.target}
+              onValueChange={(v) => {
+                setForm((f) => ({ ...f, target: v as EndpointForm['target'] }));
+                setErrors({});
+              }}
+              className="flex gap-5"
+            >
+              <label className="flex items-center gap-2 text-sm">
+                <RadioGroupItem value="workflow" /> 워크플로만
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <RadioGroupItem value="agent" /> 에이전트
+              </label>
+            </RadioGroup>
+          </fieldset>
+          {form.target === 'workflow' ? (
+            <div className="space-y-1.5">
+              <Label htmlFor="dep-workflow">워크플로</Label>
+              <Select
+                value={form.workflow_id || undefined}
+                onValueChange={(v) => {
+                  const w = workflows.items.find((x) => x.id === v);
+                  setForm((f) => ({ ...f, workflow_id: v, slug: touchedSlug ? f.slug : slugify(w?.name ?? '', v, 'flow') }));
+                }}
+              >
+                <SelectTrigger id="dep-workflow" className="w-full" aria-invalid={!!errors.workflow_id}>
+                  <SelectValue placeholder={workflows.isPending ? '불러오는 중…' : '워크플로 고르기'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {workflows.items.map((w) => (
+                    <SelectItem key={w.id} value={w.id}>
+                      {w.name}
+                      {w.deployed ? ' · 배포됨' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.workflow_id ? <p className="text-danger text-xs">{errors.workflow_id}</p> : <p className="text-muted text-xs">입력 노드의 칸이 API 요청 본문(JSON)의 필드가 됩니다.</p>}
+            </div>
+          ) : (
           <div className="space-y-1.5">
             <Label htmlFor="dep-agent">에이전트</Label>
             <Select
@@ -114,6 +163,7 @@ export function NewDeployDialog({ open, onOpenChange, initialAgentId }: { open: 
             </Select>
             {errors.agent_id ? <p className="text-danger text-xs">{errors.agent_id}</p> : null}
           </div>
+          )}
           <div className="space-y-1.5">
             <Label htmlFor="dep-slug">슬러그</Label>
             <div className="flex items-center rounded-md border focus-within:ring-2 focus-within:ring-ring/40">

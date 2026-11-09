@@ -29,7 +29,7 @@ function freezeVersion(workflowId: string, userId: string) {
 
 function openapiFor(e: DbEndpoint) {
   const ws = db.workspaces.find((w) => w.id === e.workspace_id)!;
-  const agent = db.agents.find((a) => a.id === e.agent_id);
+  const agent = db.agents.find((a) => a.id === e.agent_id) ?? db.workflows.find((w) => w.id === e.workflow_id);
   return {
     openapi: '3.1.0',
     info: { title: agent?.name ?? e.slug, version: String(db.workflow_versions.find((v) => v.id === e.workflow_version_id)?.version ?? 1), description: agent?.description ?? '' },
@@ -95,17 +95,21 @@ export const deployHandlers = [
   http.post(`${API}/endpoints`, async ({ request }) => {
     const ctx = guard(request, 'maker');
     if (isResponse(ctx)) return ctx;
-    const b = await body<{ agent_id?: string; slug?: string; mode?: 'sync' | 'async'; webhook_url?: string | null; rate_limit_rpm?: number }>(request);
-    const agent = db.agents.find((a) => a.id === b.agent_id && a.workspace_id === ctx.wsId && !a.deleted_at);
-    if (!agent) return problem('MOA-VALIDATION', '배포할 에이전트를 고르세요.', { errors: [{ loc: ['body', 'agent_id'], msg: 'Field required' }] });
-    if (agent.api_only) return problem('MOA-MKT-003', 'API 전용 라이선스로 구매한 에이전트는 다시 배포할 수 없습니다.');
+    const b = await body<{ agent_id?: string; workflow_id?: string; slug?: string; mode?: 'sync' | 'async'; webhook_url?: string | null; rate_limit_rpm?: number }>(request);
+    // 워크플로만 배포(agent_id 없이 workflow_id)도 받는다
+    const flow = !b.agent_id && b.workflow_id ? db.workflows.find((w) => w.id === b.workflow_id && w.workspace_id === ctx.wsId && !w.deleted_at) : undefined;
+    if (!b.agent_id && b.workflow_id && !flow) return problem('MOA-WF-004', '배포할 워크플로를 찾을 수 없습니다.');
+    const agent = flow ? undefined : db.agents.find((a) => a.id === b.agent_id && a.workspace_id === ctx.wsId && !a.deleted_at);
+    if (!flow && !agent) return problem('MOA-VALIDATION', '배포할 에이전트나 워크플로를 고르세요.', { errors: [{ loc: ['body', 'agent_id'], msg: 'Field required' }] });
+    if (agent?.api_only) return problem('MOA-MKT-003', 'API 전용 라이선스로 구매한 에이전트는 다시 배포할 수 없습니다.');
     const sp = slugProblem(ctx.wsId, b.slug ?? '');
     if (sp) return sp;
-    if (!agent.primary_workflow_id) return problem('MOA-WF-004', '에이전트에 연결된 워크플로가 없어 입력 스키마를 만들 수 없습니다.');
-    const version = freezeVersion(agent.primary_workflow_id, ctx.userId);
+    const wfId = flow ? flow.id : agent!.primary_workflow_id;
+    if (!wfId) return problem('MOA-WF-004', '에이전트에 연결된 워크플로가 없어 입력 스키마를 만들 수 없습니다.');
+    const version = freezeVersion(wfId, ctx.userId);
     if (version instanceof Response) return version;
     const now = nowIso();
-    const e: DbEndpoint = { id: uuid(), workspace_id: ctx.wsId, slug: b.slug!, agent_id: agent.id, workflow_version_id: version.id, mode: b.mode ?? 'sync', input_schema: inputSchemaOf(version.definition), webhook_url: b.webhook_url || null, webhook_secret: `whsec_${randomToken(32)}`, rate_limit_rpm: b.rate_limit_rpm ?? 60, is_active: true, created_at: now, updated_at: now };
+    const e: DbEndpoint = { id: uuid(), workspace_id: ctx.wsId, slug: b.slug!, agent_id: agent?.id ?? null, workflow_id: flow?.id ?? null, workflow_version_id: version.id, mode: b.mode ?? 'sync', input_schema: inputSchemaOf(version.definition), webhook_url: b.webhook_url || null, webhook_secret: `whsec_${randomToken(32)}`, rate_limit_rpm: b.rate_limit_rpm ?? 60, is_active: true, created_at: now, updated_at: now };
     db.endpoints.push(e);
     return json(endpointView(e, true), 201);
   }),
@@ -132,8 +136,9 @@ export const deployHandlers = [
     if (b.is_active !== undefined) e.is_active = b.is_active;
     if (b.redeploy) {
       const agent = db.agents.find((a) => a.id === e.agent_id);
-      if (agent?.primary_workflow_id) {
-        const v = freezeVersion(agent.primary_workflow_id, ctx.userId);
+      const wfId = agent ? agent.primary_workflow_id : e.workflow_id;
+      if (wfId) {
+        const v = freezeVersion(wfId, ctx.userId);
         if (v instanceof Response) return v;
         e.workflow_version_id = v.id;
         e.input_schema = inputSchemaOf(v.definition);
@@ -246,7 +251,7 @@ export const deployHandlers = [
     const errors = validateInput(e.input_schema, data);
     if (errors.length) return problem('MOA-API-003', errors.map((x) => `${x.loc.at(-1)}: ${x.msg}`).join(', '), { errors });
     key.last_used_at = nowIso();
-    const run = createRun(ws.id, { agent_id: e.agent_id, endpoint_id: e.id, api_key_id: key.id, input: data as Record<string, unknown>, trigger: 'api' });
+    const run = createRun(ws.id, { agent_id: e.agent_id ?? undefined, endpoint_id: e.id, api_key_id: key.id, input: data as Record<string, unknown>, trigger: 'api' });
     if (run instanceof Response) return run;
     const headers = { 'X-Request-Id': `01J${hex(10).toUpperCase()}`, 'X-RateLimit-Limit': String(e.rate_limit_rpm), 'X-RateLimit-Remaining': String(e.rate_limit_rpm - win.length) };
     const async = e.mode === 'async' || new URL(request.url).searchParams.get('async') === 'true';

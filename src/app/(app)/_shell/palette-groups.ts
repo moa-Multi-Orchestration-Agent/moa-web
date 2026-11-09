@@ -38,7 +38,7 @@ export function usePaletteGroups(query: string, open: boolean): PaletteExtraGrou
       return;
     }
     start.mutate(
-      { agent_id: ep.agentId, endpoint_id: ep.id, input: { [field]: slash.rest }, trigger: 'slash' },
+      { agent_id: ep.agentId ?? undefined, endpoint_id: ep.id, input: { [field]: slash.rest }, trigger: 'slash' },
       { onSuccess: (r) => { toast.success(`/${ep.slug} 실행을 시작했습니다.`); router.push(`/runs/${r.id}`); }, onError: (e) => toast.error(isApiError(e) ? e.detail : e.message) },
     );
   };

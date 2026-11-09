@@ -9,6 +9,7 @@ import { Kbd } from '@/shared/ui/kbd';
 import { ApprovalsButton } from './approvals-button';
 import { CommandPalette } from './command-palette';
 import { isEditorPath } from './nav';
+import { NotificationsButton } from './notifications-button';
 import { ShortcutHelp } from './shortcut-help';
 import { Sidebar } from './sidebar';
 import { UserMenu } from './user-menu';
@@ -76,6 +77,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
             <div className="ml-auto flex items-center gap-3">
               <ApprovalsButton />
+              <NotificationsButton />
               <UserMenu onShortcuts={() => setHelpOpen(true)} />
             </div>
           </header>

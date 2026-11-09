@@ -114,7 +114,8 @@ export function ctxOf(request: Request): Ctx | null {
   const userId = db.session.userId;
   const url = new URL(request.url);
   const wsHeader = request.headers.get('X-Workspace-Id') ?? url.searchParams.get('workspace_id');
-  const memberships = db.memberships.filter((m) => m.user_id === userId);
+  // 초대 대기(invited) 멤버십은 알림에서 수락하기 전까지 권한이 없다
+  const memberships = db.memberships.filter((m) => m.user_id === userId && !m.invited);
   const m = memberships.find((x) => x.workspace_id === wsHeader) ?? memberships[0];
   if (!m) return null;
   return { userId, wsId: m.workspace_id, role: m.role };

@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useContextBlocks, useContextSession, usePatchBlock, type BlockPatch, type ContextBlockRow } from '@/entities/context';
+import { useContextBlocks, useContextSession, useDeleteBlock, usePatchBlock, type BlockPatch, type ContextBlockRow } from '@/entities/context';
 import { SnapshotControls } from './snapshots';
 import { isApiError } from '@/shared/lib/api-client';
 import { cn } from '@/shared/lib/utils';
@@ -44,6 +44,12 @@ export function ContextPanel({
   const session = useContextSession(sessionId);
   const blocks = useContextBlocks(sessionId);
   const patch = usePatchBlock(sessionId ?? '_');
+  const remove = useDeleteBlock(sessionId ?? '_');
+  const onDelete = (b: ContextBlockRow) =>
+    remove.mutate(b, {
+      onSuccess: () => toast.success('블록을 지웠습니다.'),
+      onError: (e) => toast.error(isApiError(e) && e.code === 'MOA-CTX-003' ? '다른 곳에서 먼저 수정했습니다. 최신 내용으로 다시 불러왔어요.' : e.message),
+    });
 
   const onPatch = (b: ContextBlockRow, p: BlockPatch) =>
     patch.mutate(
@@ -109,7 +115,7 @@ export function ContextPanel({
         ) : (
           <ul className="space-y-2" aria-label="컨텍스트 블록">
             {visible.map((b) => (
-              <BlockItem key={b.id} b={b} sources={all.filter((s) => s.compressed_into === b.id)} onPatch={onPatch} readOnly={readOnly} pending={patch.isPending} />
+              <BlockItem key={b.id} b={b} sources={all.filter((s) => s.compressed_into === b.id)} onPatch={onPatch} onDelete={onDelete} readOnly={readOnly} pending={patch.isPending || remove.isPending} />
             ))}
           </ul>
         )}

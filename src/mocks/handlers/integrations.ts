@@ -78,13 +78,41 @@ export const integrationHandlers = [
   http.post(`${API}/credentials`, async ({ request }) => {
     const ctx = guard(request, 'admin');
     if (isResponse(ctx)) return ctx;
-    const b = await body<{ provider?: string; label?: string; secret?: string; purposes?: string[] }>(request);
-    if (!b.provider || !b.label || !b.secret) return problem('MOA-VALIDATION', '제공자·이름·값을 모두 입력하세요.');
+    const b = await body<{ provider?: string; label?: string; secret?: string; purposes?: string[]; base_url?: string | null; models?: string[] }>(request);
+    const url = checkBaseUrl(b.base_url, b.provider ?? '');
+    if (typeof url === 'object' && url) return url;
+    if (b.provider === 'openai_compatible') {
+      if (!url) return problem('MOA-VALIDATION', 'OpenAI 호환 서버는 API 주소(base URL)를 입력하세요. 예: https://openrouter.ai/api/v1');
+      if (!b.label?.trim()) return problem('MOA-VALIDATION', '이름을 입력하세요.');
+    } else if (!b.provider || !b.label || !b.secret) return problem('MOA-VALIDATION', '제공자·이름·값을 모두 입력하세요.');
     if (db.credentials.some((c) => c.workspace_id === ctx.wsId && c.provider === b.provider && c.label === b.label)) return problem('MOA-VALIDATION', '같은 이름의 자격증명이 있습니다.', {}, 409);
-    const c = { id: uuid(), workspace_id: ctx.wsId, provider: b.provider, label: b.label, key_version: 1, purposes: b.purposes ?? [], created_by: ctx.userId, created_at: nowIso(), secret: b.secret, expires_at: null, used_by: [] };
+    const c = { id: uuid(), workspace_id: ctx.wsId, provider: b.provider!, label: b.label!.trim(), key_version: 1, purposes: b.purposes ?? [], created_by: ctx.userId, created_at: nowIso(), secret: b.secret ?? '', expires_at: null, used_by: [], base_url: url as string | null, models: b.provider === 'openai_compatible' ? cleanModels(b.models) : [] };
     db.credentials.push(c);
     // 응답에 평문 없음(2.6.2)
     return json(credentialView(c), 201);
+  }),
+  http.patch(`${API}/credentials/:id`, async ({ request, params }) => {
+    const ctx = guard(request, 'admin');
+    if (isResponse(ctx)) return ctx;
+    const c = db.credentials.find((x) => x.id === params.id && x.workspace_id === ctx.wsId);
+    if (!c) return notFound('자격증명');
+    const b = await body<{ label?: string; base_url?: string | null; models?: string[] }>(request);
+    if (b.label !== undefined) {
+      if (!b.label.trim()) return problem('MOA-VALIDATION', '이름을 입력하세요.');
+      if (db.credentials.some((x) => x.id !== c.id && x.workspace_id === ctx.wsId && x.provider === c.provider && x.label === b.label!.trim())) return problem('MOA-VALIDATION', '같은 이름의 자격증명이 있습니다.', {}, 409);
+      c.label = b.label.trim();
+    }
+    if (b.base_url !== undefined) {
+      const url = checkBaseUrl(b.base_url, c.provider);
+      if (typeof url === 'object' && url) return url;
+      if (c.provider === 'openai_compatible' && !url) return problem('MOA-VALIDATION', '외부 AI 키는 API 주소를 비울 수 없습니다.');
+      c.base_url = url as string | null;
+    }
+    if (b.models !== undefined) {
+      if (c.provider !== 'openai_compatible') return problem('MOA-VALIDATION', '모델 목록은 외부 AI(OpenAI 호환) 키에만 등록할 수 있습니다.');
+      c.models = cleanModels(b.models);
+    }
+    return json(credentialView(c));
   }),
   http.delete(`${API}/credentials/:id`, ({ request, params }) => {
     const ctx = guard(request, 'admin');
@@ -100,3 +128,22 @@ export const integrationHandlers = [
     return json({ items: db.knowledge_bases.filter((k) => k.workspace_id === ctx.wsId).map(kbView), next_cursor: null });
   }),
 ];
+
+const LLM_PROVIDERS = ['anthropic', 'openai', 'google', 'openai_compatible'];
+/** 백엔드 normalize_models와 같다: 공백·중복·`openai_compatible:` 접두어 정리 */
+const cleanModels = (raw?: string[]) => [...new Set((raw ?? []).map((m) => m.trim().replace(/^openai_compatible:/, '').trim()).filter(Boolean))].slice(0, 100);
+/** 백엔드 normalize_base_url과 같은 규칙(목: DNS 검사 대신 메타데이터 주소만 막는다). 오류면 Response */
+function checkBaseUrl(raw: string | null | undefined, provider: string): string | null | Response {
+  const url = (raw ?? '').trim().replace(/\/+$/, '');
+  if (!url) return null;
+  if (!LLM_PROVIDERS.includes(provider)) return problem('MOA-VALIDATION', 'API 주소는 AI 모델 키에만 지정할 수 있습니다.');
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return problem('MOA-VALIDATION', 'API 주소는 http(s)://로 시작하는 주소만 넣을 수 있습니다(계정정보·? 쿼리 제외).');
+  }
+  if (!['http:', 'https:'].includes(u.protocol) || u.username || u.password || u.search || u.hash) return problem('MOA-VALIDATION', 'API 주소는 http(s)://로 시작하는 주소만 넣을 수 있습니다(계정정보·? 쿼리 제외).');
+  if (u.hostname.startsWith('169.254.')) return problem('MOA-VALIDATION', '내부망·메타데이터 주소는 API 주소로 쓸 수 없습니다.');
+  return url;
+}
