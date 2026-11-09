@@ -127,7 +127,7 @@ describe('시드 데이터 수량', () => {
     expect(wfs.every((w) => w.draft.nodes.length >= 4 && w.draft.nodes.length <= 10)).toBe(true);
     expect(db.runs.filter((r) => r.workspace_id === db.workspaces[0]!.id)).toHaveLength(30);
     expect(new Set(db.runs.map((r) => r.status))).toEqual(new Set(['succeeded', 'failed', 'waiting_approval', 'canceled']));
-    expect(db.templates).toHaveLength(24);
+    expect(db.templates).toHaveLength(25);
     expect(new Set(db.templates.map((t) => t.category)).size).toBe(8);
     expect(db.market_products.filter((p) => p.status === 'published')).toHaveLength(12);
     expect(db.endpoints.filter((e) => e.workspace_id === db.workspaces[0]!.id)).toHaveLength(3);

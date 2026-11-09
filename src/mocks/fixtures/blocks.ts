@@ -19,6 +19,37 @@ const p = (name: string, type: Port['type'], required = false, label?: string): 
 const LLM_IN = [p('query', 'string', true, '질문·지시'), p('context', 'any', false, '참고 자료')];
 const LLM_OUT = [p('text', 'string'), p('json', 'object')];
 
+/** 근로계약서 위험 검사 기본 설정. 체크리스트·기준값을 코드가 아닌 노드 config로 둔다(백엔드 카탈로그와 같은 값). */
+const RISK_CHECK_CONFIG: Record<string, unknown> = {
+  model: 'claude-sonnet-4',
+  params: { max_tokens: 8192 },
+  document: '',
+  contract_kind: '근로계약서',
+  checklist: [
+    { id: 'penalty', title: '위약금·손해배상 예정', check: '중도 퇴사 시 배상액 예정, 교육비 전액 반환, 임금·퇴직금 일방 공제', law: '근로기준법 제20조, 제43조', default_level: '높음' },
+    { id: 'wage', title: '임금·포괄임금', check: '최저임금 미달, 연장·야간·휴일수당을 기본급에 포함시켜 추가 지급하지 않음', law: '최저임금법, 근로기준법 제56조', default_level: '높음' },
+    { id: 'hours', title: '근로시간·연장근로', check: '주 52시간 초과 가능성, 연장근로 사전 포괄 동의', law: '근로기준법 제50·53조', default_level: '높음' },
+    { id: 'leave', title: '휴일·연차휴가', check: '주휴일 누락, 연차 사용 제한, 미사용 연차 수당 미지급', law: '근로기준법 제55·60조', default_level: '중간' },
+    { id: 'dismissal', title: '해고·계약 해지', check: '예고 없는 즉시 해지, 30일 해고예고 누락, 정당한 이유 없는 해고', law: '근로기준법 제23·26조', default_level: '높음' },
+    { id: 'probation', title: '수습·계약기간', check: '수습 3개월 초과 감액, 90% 미만 지급, 1년 미만 계약인데 수습 감액', law: '최저임금법 제5조', default_level: '중간' },
+  ],
+  criteria: [
+    { label: '2026년 최저임금(시간급)', value: '10,320원' },
+    { label: '월 환산액(주 40시간·월 209시간 기준)', value: '2,156,880원' },
+  ],
+  guidance: [
+    '단어만 보고 판단하지 말고 조건과 금액·기간을 함께 본다.',
+    '교육비를 실제 지출액·잔여기간 비례로 반환하게 하면 적법할 수 있다.',
+    '고정연장수당의 시간이 명시되고 초과분을 따로 지급하면 적법한 형태다.',
+    '근로자대표와 서면합의한 연차 대체(제62조)는 허용된다. 합의가 실제로 있는지 확인이 필요하다고 적는다.',
+    '법 조항을 준용한다고만 쓴 조항은 위험 없음으로 본다.',
+  ],
+  skip_labels: ['근로계약서 아님'],
+  find_extra: true,
+  max_extra: 3,
+  max_chars_per_contract: 1800,
+};
+
 type B = Omit<Block, 'config'> & { config?: Record<string, unknown> };
 const b = (x: B): Block => ({ config: {}, ...x });
 
@@ -36,6 +67,7 @@ export const BLOCKS: Block[] = [
   b({ id: 'llm.summarize', group: 'llm', type: 'llm', label: '요약', description: '긴 글을 핵심만 요약합니다', icon: 'AlignLeft', ports_in: LLM_IN, ports_out: LLM_OUT, config: { model: 'claude-haiku-4', prompt: '다음 내용을 5줄로 요약해 줘.\n\n{{in.output.text}}', fallback_models: [] } }),
   b({ id: 'llm.classify', group: 'llm', type: 'llm', label: '분류', description: '정해진 라벨 중 하나로 분류합니다', icon: 'Tags', ports_in: LLM_IN, ports_out: [p('label', 'string'), p('score', 'number')], config: { model: 'claude-haiku-4', prompt: '', labels: ['문의', '불만', '칭찬'] } }),
   b({ id: 'llm.extract', group: 'llm', type: 'llm', label: '정보 추출', description: '글에서 구조화된 값을 뽑습니다', icon: 'Braces', ports_in: LLM_IN, ports_out: [p('json', 'object')], config: { model: 'claude-sonnet-4', prompt: '', output_schema: {} } }),
+  b({ id: 'llm.risk_check', group: 'llm', type: 'risk_check', label: '위험 조항 검사', description: '체크리스트로 계약서의 위험 조항을 찾아 표시합니다', icon: 'ShieldAlert', ports_in: [p('document', 'any', true, '검사할 문서'), p('contract_type', 'string', false, '계약서 분류')], ports_out: [p('review', 'object'), p('text', 'string')], config: RISK_CHECK_CONFIG }),
   b({ id: 'llm.translate', group: 'llm', type: 'llm', label: '번역', description: '다른 언어로 옮깁니다', icon: 'Languages', ports_in: LLM_IN, ports_out: LLM_OUT, config: { model: 'claude-haiku-4', prompt: '', target_lang: 'en' } }),
   b({ id: 'llm.vision', group: 'llm', type: 'llm', label: '이미지 이해', description: '이미지를 보고 설명합니다', icon: 'ScanEye', ports_in: [p('image', 'image', true, '이미지'), p('query', 'string')], ports_out: LLM_OUT, config: { model: 'claude-sonnet-4', prompt: '' } }),
   b({ id: 'llm.agent', group: 'llm', type: 'llm', label: '에이전트 호출', description: '다른 에이전트에게 일을 맡깁니다', icon: 'Bot', ports_in: LLM_IN, ports_out: LLM_OUT, config: { agent_id: null, prompt: '{{in.output.query}}' } }),
@@ -53,6 +85,7 @@ export const BLOCKS: Block[] = [
   // 로직 (6)
   b({ id: 'logic.condition', group: 'logic', type: 'condition', label: '조건 분기', description: '조건에 따라 다른 길로 보냅니다', icon: 'GitBranch', ports_in: [p('value', 'any', true, '판단 값')], ports_out: [p('true', 'any', false, '예'), p('false', 'any', false, '아니오')], config: { rules: [{ left: 'score', op: '>=', right: '0.7' }] } }),
   b({ id: 'logic.loop', group: 'logic', type: 'loop', label: '반복', description: '목록의 항목마다 반복합니다', icon: 'Repeat', ports_in: [p('items', 'array', true, '목록')], ports_out: [p('item', 'any'), p('done', 'array')], config: { max_iter: 20 } }),
+  b({ id: 'logic.collect', group: 'logic', type: 'collect', label: '결과 모으기', description: '반복할 때마다 결과를 순서대로 모읍니다', icon: 'ListPlus', ports_in: [p('item', 'any', true, '모을 값')], ports_out: [p('items', 'array'), p('text', 'string'), p('next', 'any')], config: { text_field: 'text' } }),
   b({ id: 'logic.parallel', group: 'logic', type: 'parallel', label: '병렬', description: '여러 갈래를 동시에 실행합니다', icon: 'Split', ports_in: [p('input', 'any')], ports_out: [p('a', 'any'), p('b', 'any')] }),
   b({ id: 'logic.map', group: 'logic', type: 'map', label: '병렬 맵', description: '목록의 항목마다 하위 워크플로를 동시에 실행하고 결과를 입력 순서대로 모읍니다. 실패 여부는 errors의 index로 판단합니다', icon: 'Layers', ports_in: [p('items', 'array', true, '목록')], ports_out: [p('results', 'array'), p('errors', 'array'), p('failed_count', 'number'), p('stats', 'object')], config: { workflow_id: '', concurrency: 5, max_items: 20, item_timeout_s: 300, item_field: '', index_field: '' } }),
   b({ id: 'logic.merge', group: 'logic', type: 'code', label: '병합', description: '여러 결과를 하나로 합칩니다', icon: 'Merge', ports_in: [p('a', 'any'), p('b', 'any')], ports_out: [p('merged', 'object')], config: { language: 'python', code: 'return {**a, **b}' } }),
@@ -72,6 +105,7 @@ export const BLOCKS: Block[] = [
   b({ id: 'kb.memory_save', group: 'knowledge', type: 'tool', label: '기억하기', description: '장기 기억에 저장합니다', icon: 'BookmarkPlus', ports_in: [p('content', 'string', true, '내용')], ports_out: [p('memory_id', 'string')], config: { tool: 'memory_save', kind: 'long' } }),
   b({ id: 'kb.memory_recall', group: 'knowledge', type: 'kb_search', label: '기억 불러오기', description: '관련 기억을 찾아 옵니다', icon: 'History', ports_in: [p('query', 'string', true, '질문')], ports_out: [p('memories', 'array')], config: { source: 'memory', top_k: 5 } }),
   b({ id: 'kb.load_doc', group: 'knowledge', type: 'tool', label: '문서 로드', description: '파일을 읽어 텍스트로 바꿉니다', icon: 'FileUp', ports_in: [p('url', 'string', true, '파일 URL')], ports_out: [p('text', 'string')], config: { tool: 'load_document' } }),
+  b({ id: 'doc.pdf_extract', group: 'knowledge', type: 'doc_extract', label: 'PDF 텍스트 추출', description: 'PDF 파일들에서 본문 텍스트를 뽑습니다', icon: 'FileText', ports_in: [p('files', 'array', true, '파일 목록')], ports_out: [p('documents', 'array'), p('count', 'number')], config: { max_files: 10 } }),
   b({ id: 'kb.embed', group: 'knowledge', type: 'tool', label: '임베딩 생성', description: '텍스트를 벡터로 바꿉니다', icon: 'Binary', ports_in: [p('text', 'string', true, '텍스트')], ports_out: [p('vector', 'array')], config: { tool: 'embed', model: 'text-embedding-3-small' } }),
 
   // 3D (5)
