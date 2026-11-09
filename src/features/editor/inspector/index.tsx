@@ -9,6 +9,7 @@ import type { FlowNode } from '../convert';
 import { useEditorStore } from '../store';
 import { ConditionForm, KbForm, LlmForm, ToolForm, type FormProps } from './forms-ai';
 import { ApprovalForm, CodeForm, HttpForm, InputForm, LoopForm, ThreeDForm } from './forms-other';
+import { MapForm } from './forms-map';
 import { CheckField, Section, TextField } from './fields';
 import type { BindingOption } from './template-input';
 
@@ -23,6 +24,7 @@ const FORMS: Partial<Record<string, (p: FormProps) => React.ReactNode>> = {
   approval: ApprovalForm,
   input: InputForm,
   loop: LoopForm,
+  map: MapForm,
 };
 
 /** 검증 결과 목록(인스펙터 상단). 누르면 그 노드로 이동 */

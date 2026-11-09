@@ -106,6 +106,17 @@ export function fakeOutput(n: NodeDef, input: Record<string, unknown>): unknown 
       return { branch: 'true', value: 0.82 };
     case 'loop':
       return { done: [1, 2, 3], iterations: 3 };
+    case 'map': {
+      // 목 모드: 하위 워크플로를 실제로 부르지 않고 항목 수만큼 가짜 결과를 만든다
+      const items = Array.isArray(input.items) ? (input.items as unknown[]) : [];
+      const limited = items.slice(0, Number(n.config.max_items ?? 20));
+      return {
+        results: limited.map((item, index) => ({ result: `항목 ${index + 1} 처리 결과(목 데이터)`, item })),
+        errors: [],
+        failed_count: 0,
+        stats: { elapsed_ms: 1200, peak_concurrency: Math.min(limited.length, Number(n.config.concurrency ?? 5)), concurrency: Number(n.config.concurrency ?? 5), skipped: items.length - limited.length },
+      };
+    }
     case 'parallel':
       return { a: 'A', b: 'B' };
     case 'approval':

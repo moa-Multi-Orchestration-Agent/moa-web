@@ -1,5 +1,5 @@
 /**
- * 노드 팔레트: 8그룹 47블록 (prompts.md 2단계 5), frontend-plan D23).
+ * 노드 팔레트: 8그룹 48블록 (prompts.md 2단계 5), frontend-plan D23).
  * type은 design.md 2.2.3 HANDLERS 중 하나다. icon은 lucide 아이콘 이름.
  */
 import type { Block, NodeDef, Port } from '@/entities/workflow/model';
@@ -54,6 +54,7 @@ export const BLOCKS: Block[] = [
   b({ id: 'logic.condition', group: 'logic', type: 'condition', label: '조건 분기', description: '조건에 따라 다른 길로 보냅니다', icon: 'GitBranch', ports_in: [p('value', 'any', true, '판단 값')], ports_out: [p('true', 'any', false, '예'), p('false', 'any', false, '아니오')], config: { rules: [{ left: 'score', op: '>=', right: '0.7' }] } }),
   b({ id: 'logic.loop', group: 'logic', type: 'loop', label: '반복', description: '목록의 항목마다 반복합니다', icon: 'Repeat', ports_in: [p('items', 'array', true, '목록')], ports_out: [p('item', 'any'), p('done', 'array')], config: { max_iter: 20 } }),
   b({ id: 'logic.parallel', group: 'logic', type: 'parallel', label: '병렬', description: '여러 갈래를 동시에 실행합니다', icon: 'Split', ports_in: [p('input', 'any')], ports_out: [p('a', 'any'), p('b', 'any')] }),
+  b({ id: 'logic.map', group: 'logic', type: 'map', label: '병렬 맵', description: '목록의 항목마다 하위 워크플로를 동시에 실행하고 결과를 입력 순서대로 모읍니다. 실패 여부는 errors의 index로 판단합니다', icon: 'Layers', ports_in: [p('items', 'array', true, '목록')], ports_out: [p('results', 'array'), p('errors', 'array'), p('failed_count', 'number'), p('stats', 'object')], config: { workflow_id: '', concurrency: 5, max_items: 20, item_timeout_s: 300, item_field: '', index_field: '' } }),
   b({ id: 'logic.merge', group: 'logic', type: 'code', label: '병합', description: '여러 결과를 하나로 합칩니다', icon: 'Merge', ports_in: [p('a', 'any'), p('b', 'any')], ports_out: [p('merged', 'object')], config: { language: 'python', code: 'return {**a, **b}' } }),
   b({ id: 'logic.delay', group: 'logic', type: 'code', label: '대기', description: '정해진 시간만큼 기다립니다', icon: 'Timer', ports_in: [p('input', 'any')], ports_out: [p('output', 'any')], config: { seconds: 60 } }),
   b({ id: 'logic.try', group: 'logic', type: 'code', label: '오류 처리', description: '실패해도 다음 단계로 넘어갑니다', icon: 'ShieldAlert', ports_in: [p('input', 'any')], ports_out: [p('ok', 'any'), p('error', 'object')], config: { on_error: 'continue' } }),
