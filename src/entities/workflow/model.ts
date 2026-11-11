@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { camelKeys } from '@/shared/lib/case';
 
 /** 포트 자료형(JSON Schema 부분집합 + image) */
-export const PORT_TYPES = ['string', 'number', 'integer', 'boolean', 'object', 'array', 'image', 'any'] as const;
+export const PORT_TYPES = ['string', 'number', 'integer', 'boolean', 'object', 'array', 'image', 'file', 'any'] as const;
 export const portTypeSchema = z.enum(PORT_TYPES);
 export type PortType = z.infer<typeof portTypeSchema>;
 
@@ -117,7 +117,7 @@ export const workflowRowSchema = z
       .array(
         z.object({
           name: z.string(),
-          type: z.enum(['string', 'number', 'integer', 'boolean', 'array', 'object']).catch('string'),
+          type: z.enum(['string', 'number', 'integer', 'boolean', 'array', 'object', 'file', 'files']).catch('string'),
           required: z.boolean().optional(),
           description: z.string().optional(),
           enum: z.array(z.string()).optional(),

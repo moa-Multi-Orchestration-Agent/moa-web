@@ -9,7 +9,8 @@ export function isAssignable(src: PortType | undefined, dst: PortType | undefine
   if (src === 'any' || dst === 'any') return true;
   if (src === dst) return true;
   if (src === 'integer' && dst === 'number') return true;
-  if (src === 'image' && dst === 'string') return false;
+  // 이미지는 파일의 한 종류로 본다(첨부 포트 ↔ 이미지 포트). 백엔드 is_assignable과 같다.
+  if ((src === 'image' && dst === 'file') || (src === 'file' && dst === 'image')) return true;
   return false;
 }
 
@@ -104,7 +105,8 @@ function topoOrder(nodes: NodeDef[], adj: Map<string, string[]>, indegIn: Map<st
 /** 입력 노드의 필드 정의 → JSON Schema (배포 시 API 입력 스키마, design.md 2.3.1) */
 export interface InputField {
   name: string;
-  type: 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object';
+  /** file: 첨부 1개, files: 첨부 여러 개(PDF·이미지). 실행 입력에는 base64로 보내고 서버가 참조로 바꾼다. */
+  type: 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object' | 'file' | 'files';
   required?: boolean;
   description?: string;
   enum?: string[];
@@ -120,8 +122,9 @@ export function inputSchemaOf(defn: Pick<WorkflowDefinition, 'nodes'>): Record<s
   const fields = inputFieldsOf(defn);
   const properties: Record<string, unknown> = {};
   for (const f of fields) {
+    const type = f.type === 'file' ? { type: 'object', format: 'moa-file' } : f.type === 'files' ? { type: 'array', items: { type: 'object', format: 'moa-file' } } : { type: f.type };
     properties[f.name] = {
-      type: f.type,
+      ...type,
       ...(f.description ? { description: f.description } : {}),
       ...(f.enum?.length ? { enum: f.enum } : {}),
       ...(f.default !== undefined ? { default: f.default } : {}),
@@ -137,10 +140,13 @@ export function inputSchemaOf(defn: Pick<WorkflowDefinition, 'nodes'>): Record<s
 
 /** 입력 스키마로 예시 본문 만들기(호출 예시·플레이그라운드) */
 export function exampleFromSchema(schema: Record<string, unknown>): Record<string, unknown> {
-  const props = (schema.properties ?? {}) as Record<string, { type?: string; enum?: string[]; default?: unknown; description?: string }>;
+  const props = (schema.properties ?? {}) as Record<string, { type?: string; format?: string; items?: { format?: string }; enum?: string[]; default?: unknown; description?: string }>;
   const out: Record<string, unknown> = {};
+  const fileExample = { filename: '문서.pdf', data_base64: 'JVBERi0xLjQK...' };
   for (const [k, p] of Object.entries(props)) {
-    if (p.default !== undefined) out[k] = p.default;
+    if (p.format === 'moa-file') out[k] = fileExample;
+    else if (p.items?.format === 'moa-file') out[k] = [fileExample];
+    else if (p.default !== undefined) out[k] = p.default;
     else if (p.enum?.length) out[k] = p.enum[0];
     else if (p.type === 'number' || p.type === 'integer') out[k] = 1200;
     else if (p.type === 'boolean') out[k] = true;
