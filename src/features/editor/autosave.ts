@@ -3,7 +3,7 @@
 /**
  * 자동 저장 (design.md 3.4.3 ② 의사코드 그대로).
  * 변경 후 AUTOSAVE_MS 디바운스 → PUT /draft (If-Match: serverVersion).
- * 409면 서버 최신본을 받아 충돌 다이얼로그, 그 밖의 오류는 토스트 후 자동 재시도.
+ * 409면 충돌 확인, 네트워크·일시 오류만 자동 재시도한다.
  */
 import { useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -12,6 +12,7 @@ import { fetchWorkflow, saveDraft, validateWorkflow, workflowKeys } from '@/enti
 import { isApiError } from '@/shared/lib/api-client';
 import { toDefinition } from './convert';
 import { AUTOSAVE_MS, useEditorStore } from './store';
+import { MISSING_WORKFLOW_MESSAGE } from './save-recovery';
 
 const RETRY_MS = 5000;
 
@@ -23,10 +24,21 @@ export function useAutosave(workflowId: string, enabled: boolean) {
   const conflict = useEditorStore((s) => s.conflict);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saving = useRef(false);
+  const stopped = useRef(false);
+  const active = useRef(true);
+
+  useEffect(() => {
+    active.current = true;
+    stopped.current = false;
+    return () => {
+      active.current = false;
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, [workflowId, enabled]);
 
   const save = useCallback(async () => {
     const s = useEditorStore.getState();
-    if (!enabled || saving.current || !s.dirty || s.conflict || s.workflowId !== workflowId) return;
+    if (!enabled || !active.current || stopped.current || saving.current || !s.dirty || s.conflict || s.workflowId !== workflowId) return;
     saving.current = true;
     const defn = toDefinition(s.nodes, s.edges);
     const sent = JSON.stringify(defn);
@@ -34,11 +46,13 @@ export function useAutosave(workflowId: string, enabled: boolean) {
     try {
       const res = await saveDraft(workflowId, defn, s.serverVersion);
       const now = useEditorStore.getState();
+      if (!active.current || now.workflowId !== workflowId) return;
       now.markSaved(res.draft_version, res.issues);
       // 저장하는 사이 또 바뀌었으면 다시 저장 대상으로 둔다
       if (JSON.stringify(toDefinition(now.nodes, now.edges)) !== sent) useEditorStore.setState({ dirty: true });
       void qc.invalidateQueries({ queryKey: workflowKeys.all, refetchType: 'none' });
     } catch (e) {
+      if (!active.current || useEditorStore.getState().workflowId !== workflowId) return;
       if (isApiError(e) && e.status === 409) {
         try {
           useEditorStore.getState().setConflict(await fetchWorkflow(workflowId));
@@ -46,10 +60,12 @@ export function useAutosave(workflowId: string, enabled: boolean) {
           useEditorStore.getState().markSaveError('충돌을 확인하지 못했습니다.');
         }
       } else {
-        const msg = isApiError(e) ? e.detail : (e as Error).message;
+        const retryable = isApiError(e) && (e.status === 0 || e.status >= 500 || e.status === 429 || e.retryable);
+        stopped.current = !retryable;
+        const msg = isApiError(e) && e.status === 404 ? MISSING_WORKFLOW_MESSAGE : isApiError(e) ? e.detail : (e as Error).message;
         useEditorStore.getState().markSaveError(msg);
-        toast.error('저장하지 못했습니다. 자동으로 다시 시도합니다.', { id: 'autosave-error', description: msg });
-        timer.current = setTimeout(() => void save(), RETRY_MS);
+        toast.error(retryable ? '저장하지 못했습니다. 자동으로 다시 시도합니다.' : '자동 저장을 중지했습니다.', { id: 'autosave-error', description: msg });
+        if (retryable) timer.current = setTimeout(() => void save(), RETRY_MS);
       }
     } finally {
       saving.current = false;
@@ -77,6 +93,7 @@ export function useAutosave(workflowId: string, enabled: boolean) {
 
   const saveNow = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
+    stopped.current = false;
     useEditorStore.setState((s) => ({ dirty: s.dirty || s.saveStatus === 'error' }));
     void save();
   }, [save]);
