@@ -15,9 +15,13 @@ export function chain(steps: Step[]): WorkflowDefinition {
   for (let i = 1; i < nodes.length; i++) {
     const prev = nodes[i - 1]!;
     const cur = nodes[i]!;
-    const target = cur.ports_in.find((p) => p.required) ?? cur.ports_in[0];
+    const preferred = cur.ports_in.find((p) => p.required) ?? cur.ports_in[0];
+    // 필수 입력에 맞지 않는 목록은 context 등 호환되는 입력으로 전달한다.
+    const target = preferred && prev.ports_out.some((p) => isAssignable(p.type, preferred.type))
+      ? preferred
+      : cur.ports_in.find((p) => prev.ports_out.some((out) => isAssignable(out.type, p.type)));
     if (!target) continue;
-    const source = prev.ports_out.find((p) => isAssignable(p.type, target.type)) ?? prev.ports_out[0];
+    const source = prev.ports_out.find((p) => isAssignable(p.type, target.type));
     if (!source) continue;
     edges.push({ id: `e${i}`, source: prev.id, source_port: source.name, target: cur.id, target_port: target.name, condition: null });
     // 앞 노드 외에 다른 필수 입력은 시작 노드에서 끌어온다
