@@ -10,6 +10,9 @@ import { AreaField, CheckField, SelectField, SliderField, TextField } from './fi
 import { TemplateInput } from './template-input';
 import { PresetBar, ResultPreview } from './three-d-extras';
 
+/** 입력 필드 타입 선택지 표시 이름. file·files는 실행할 때 PDF·이미지를 첨부하는 칸이다. */
+const FIELD_TYPE_LABEL: Record<string, string> = { file: 'file (첨부 1개)', files: 'files (첨부 여러 개)' };
+
 export function HttpForm({ cfg, set, disabled }: FormProps) {
   const headers = (cfg.headers as { key: string; value: string }[]) ?? [];
   return (
@@ -121,7 +124,7 @@ export function InputForm({ cfg, set, setData, disabled }: FormProps) {
         <div key={i} className="space-y-2 rounded-md border p-2.5">
           <div className="grid grid-cols-[1fr_110px_auto] items-end gap-1.5">
             <TextField label="이름" value={f.name} onChange={(v) => update(fields.map((x, j) => (j === i ? { ...x, name: v.replace(/[^a-zA-Z0-9_]/g, '') } : x)))} mono disabled={disabled} />
-            <SelectField label="타입" value={f.type} onChange={(v) => update(fields.map((x, j) => (j === i ? { ...x, type: v as InputField['type'] } : x)))} options={['string', 'number', 'integer', 'boolean', 'array', 'object'].map((t) => ({ value: t, label: t }))} disabled={disabled} />
+            <SelectField label="타입" value={f.type} onChange={(v) => update(fields.map((x, j) => (j === i ? { ...x, type: v as InputField['type'] } : x)))} options={['string', 'number', 'integer', 'boolean', 'array', 'object', 'file', 'files'].map((t) => ({ value: t, label: FIELD_TYPE_LABEL[t] ?? t }))} disabled={disabled} />
             <Button size="icon-sm" variant="ghost" onClick={() => update(fields.filter((_, j) => j !== i))} disabled={disabled} aria-label={`필드 ${f.name || i + 1} 삭제`}>
               <Trash2 aria-hidden />
             </Button>

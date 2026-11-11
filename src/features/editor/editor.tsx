@@ -18,7 +18,7 @@ import { useAutosave } from './autosave';
 import { Canvas } from './canvas';
 import { ConflictDialog } from './conflict-dialog';
 import { ContextPanel } from './context-panel';
-import { nextNodeId, nodeFromBlock, toDefinition, type FlowNode } from './convert';
+import { nextNodeId, nodeFromBlock, toDefinition, withCatalogPorts, type FlowNode } from './convert';
 import { EditorHeader, type EditorTab } from './editor-header';
 import { Inspector, IssueList } from './inspector';
 import { NodePalette } from './palette';
@@ -47,9 +47,14 @@ function EditorBody({ workflowId }: { workflowId: string }) {
   const [versionsSheet, setVersionsSheet] = useState(!!s.version);
   const rf = useReactFlow<FlowNode>();
 
+  // 카탈로그를 받은 뒤에 연다: 예전에 저장한 노드에도 새 입력 포트(첨부 등)를 붙이기 위해서다. 카탈로그 오류면 그대로 연다.
+  const catalogSettled = !!catalog.data || catalog.isError;
   useEffect(() => {
-    if (wf.data && loadedId !== workflowId) useEditorStore.getState().init({ id: wf.data.id, draft: wf.data.draft, draft_version: wf.data.draftVersion });
-  }, [wf.data, loadedId, workflowId]);
+    if (wf.data && catalogSettled && loadedId !== workflowId) {
+      const draft = withCatalogPorts(wf.data.draft, catalog.data?.blocks ?? []);
+      useEditorStore.getState().init({ id: wf.data.id, draft, draft_version: wf.data.draftVersion });
+    }
+  }, [wf.data, catalogSettled, catalog.data, loadedId, workflowId]);
   useEffect(() => {
     if (catalog.data) registerBlockIcons(Object.fromEntries(catalog.data.blocks.map((b) => [b.id, b.icon])));
   }, [catalog.data]);
