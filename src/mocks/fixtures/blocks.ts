@@ -1,5 +1,5 @@
 /**
- * 노드 팔레트: 8그룹 48블록 (prompts.md 2단계 5), frontend-plan D23).
+ * 노드 팔레트: 8그룹 51블록 (prompts.md 2단계 5), frontend-plan D23).
  * type은 design.md 2.2.3 HANDLERS 중 하나다. icon은 lucide 아이콘 이름.
  */
 import type { Block, NodeDef, Port } from '@/entities/workflow/model';
