@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { buildInput, chatField, outputText } from './output-text';
 
 describe('outputText', () => {
+  it('파일 참조는 글로 보여 주지 않는다(내려받기 버튼으로 표시)', () => {
+    const ref = { kind: 'file', filename: 'a.pdf', mime: 'application/pdf', size: 1, storage_key: 'outputs/w/r/a.pdf' };
+    expect(outputText({ result: ref, delivered_at: 'x' })).toBe('');
+    expect(outputText({ result: [ref, '요약'] })).toBe('요약');
+  });
   it('출력 노드의 result 안 LLM text를 꺼낸다', () => {
     expect(outputText({ result: { text: '연차는 15일입니다.', json: {} }, delivered_at: 'x' })).toBe('연차는 15일입니다.');
     expect(outputText({ result: '그냥 문자열' })).toBe('그냥 문자열');

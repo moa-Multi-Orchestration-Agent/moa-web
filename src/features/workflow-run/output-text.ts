@@ -1,11 +1,13 @@
 import type { InputField } from '@/entities/workflow';
+import { isFileRef } from '@/shared/lib/attachments';
 
 /** 실행 결과(output)에서 사람에게 보여 줄 답만 꺼낸다. 출력 노드는 {result}, LLM 노드는 {text, json}을 낸다. */
 export function outputText(output: unknown, depth = 0): string {
   if (output == null) return '';
   if (typeof output === 'string') return output;
   if (typeof output !== 'object' || depth > 4) return String(output);
-  if (Array.isArray(output)) return output.map((x) => outputText(x, depth + 1)).join('\n');
+  if (Array.isArray(output)) return output.map((x) => outputText(x, depth + 1)).filter(Boolean).join('\n');
+  if (isFileRef(output)) return ''; // 파일은 내려받기 버튼으로 보여 준다
   const o = output as Record<string, unknown>;
   if ('result' in o) return outputText(o.result, depth + 1);
   if (typeof o.text === 'string') return o.text;

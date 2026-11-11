@@ -18,6 +18,7 @@ import { JsonViewer } from '@/shared/ui/json-viewer';
 import { SectionCard } from '@/shared/ui/page-header';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/shared/ui/sheet';
 import { Skeleton } from '@/shared/ui/skeleton';
+import { FileDownloads } from '@/shared/ui/file-downloads';
 import { EmptyState, ErrorState } from '@/shared/ui/states';
 import { KindBadge, RunStatusBadge } from '@/shared/ui/status-badge';
 import { Gantt } from './gantt';
@@ -143,6 +144,7 @@ export function RunDetailView({ id }: { id: string }) {
               </div>
               <div>
                 <h3 className="mb-1.5 text-sm font-semibold">{copy.runs.output}</h3>
+                <FileDownloads value={step.output} className="mb-2" />
                 <JsonViewer value={step.output} label="출력 JSON" />
               </div>
             </div>
@@ -151,6 +153,7 @@ export function RunDetailView({ id }: { id: string }) {
       </div>
       {r.output ? (
         <SectionCard title="최종 출력">
+          <FileDownloads value={r.output} className="mb-3" />
           <JsonViewer value={r.output} label="최종 출력 JSON" />
         </SectionCard>
       ) : null}
