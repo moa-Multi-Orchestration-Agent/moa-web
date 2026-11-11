@@ -3,6 +3,14 @@
  * 화면별 문구는 화면 이름 키 아래에 둔다.
  */
 export const copy = {
+  cardNews: {
+    title: '국내 주식 카드뉴스', format: '5장 · 1080 × 1350 · JPEG', generating: '이미지 생성 중…', caption: '게시 문안·출처',
+    note: '서버가 수집·요약해 저장한 최신 뉴스입니다. 인스타그램 게시 전 이미지와 출처를 확인해 주세요.',
+    latest: '최신 국내 주식 카드뉴스', refresh: '지금 수집 요청', collecting: '수집·요약 중…', noNews: '아직 수집된 뉴스가 없습니다.',
+    emptyHelp: '서버의 실제 LLM 키와 수집 설정을 연결하면 최신 카드가 자동으로 표시됩니다.',
+    mockMode: '현재는 목 API 모드입니다. 실제 뉴스는 pnpm dev:backend로 실행한 웹에서 확인할 수 있습니다.',
+    scheduleOff: '자동 수집 꺼짐 · 서버에서 예약 설정이 필요합니다.', ready: '검토 대기', captionDownload: 'JSON·원문 출처 저장',
+  },
   app: {
     name: 'MOA',
     tagline: 'AI 에이전트 오케스트레이션',

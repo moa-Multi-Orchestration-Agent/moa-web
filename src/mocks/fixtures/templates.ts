@@ -52,6 +52,12 @@ const cred = (provider: string, label: string) => ({ kind: 'credential' as const
 const kb = (label: string) => ({ kind: 'kb' as const, provider: 'kb', label });
 
 export const SEED_TEMPLATES: DbTemplate[] = [
+  T(25, { name: '국내 주식 카드뉴스', summary: '자동 수집한 국내 주식 뉴스로 카드뉴스 5장을 만들고 게시 전 확인합니다', category: 'content', kind: 'workflow', difficulty: 'easy', icon: '📰', trigger: 'manual', model: null, skills: ['국내 주식 카드뉴스'], required_connections: [], description: '실제 백엔드에 저장된 최신 뉴스 4건과 표지로 카드 5장을 구성합니다. 실제 RSS·LLM 설정이 필요합니다. 인스타 게시 단계는 포함하지 않습니다.' }, [
+    ['input.manual', '최신 수집본 확인', { fields: [field('query', '요청 메모', 'string', false)] }],
+    ['tool.stock_news_cards', '국내 주식 카드뉴스 5장'],
+    ['human.approval', '게시 전 내용 확인', { summary: '카드뉴스 화면에서 이미지 5장과 출처를 확인해 주세요. 승인해도 인스타그램에 게시하지 않습니다.' }],
+    ['output.result', '확인 결과 반환'],
+  ]),
   // 콘텐츠
   T(1, { name: '블로그 초안 작성', summary: '주제와 톤을 받아 블로그 초안을 씁니다', category: 'content', kind: 'workflow', difficulty: 'easy', icon: '✍️', trigger: 'api', model: 'claude-sonnet-4', skills: [], required_connections: [] }, [
     ['input.api', '주제 입력', { fields: [field('topic', '주제'), field('tone', '톤', 'string', false)] }],

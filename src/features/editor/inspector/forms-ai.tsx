@@ -110,6 +110,8 @@ export function ToolForm({ cfg, set, disabled }: FormProps) {
   const required = (tool?.input_schema.required as string[] | undefined) ?? [];
   const args = (cfg.args as Record<string, unknown>) ?? {};
 
+  if (cfg.tool === 'stock_news_cards') return <div className="space-y-3 text-sm"><p>백엔드가 자동 수집·요약한 최신 국내 주식 뉴스를 사용합니다. 카드 이미지 5장과 원문 출처를 확인해 주세요.</p><Link href="/stock-news" className="text-primary font-semibold underline">최신 카드뉴스 열기</Link><p className="text-muted text-xs">실제 백엔드와 LLM 키 설정이 필요합니다. 인스타그램 게시 기능은 포함되지 않습니다.</p></div>;
+
   if (!cfg.mcp_server && cfg.tool) {
     return (
       <div className="space-y-3">

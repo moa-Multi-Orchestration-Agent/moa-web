@@ -41,6 +41,7 @@ export const BLOCKS: Block[] = [
   b({ id: 'llm.agent', group: 'llm', type: 'llm', label: '에이전트 호출', description: '다른 에이전트에게 일을 맡깁니다', icon: 'Bot', ports_in: LLM_IN, ports_out: LLM_OUT, config: { agent_id: null, prompt: '{{in.output.query}}' } }),
 
   // 도구·MCP (8)
+  b({ id: 'tool.stock_news_cards', group: 'tool', type: 'tool', label: '국내 주식 카드뉴스', description: '백엔드가 수집·요약한 최신 국내 주식 뉴스를 카드 5장으로 확인합니다', icon: 'FileText', ports_in: [p('trigger', 'any')], ports_out: [p('edition', 'object')], config: { tool: 'stock_news_cards' } }),
   b({ id: 'tool.web_search', group: 'tool', type: 'tool', label: '웹 검색', description: '검색 엔진으로 최신 정보를 찾습니다', icon: 'Globe', ports_in: [p('query', 'string', true, '검색어')], ports_out: [p('results', 'array')], config: { tool: 'web_search', top_k: 5 } }),
   b({ id: 'tool.http', group: 'tool', type: 'http', label: 'HTTP 요청', description: '외부 API를 호출합니다', icon: 'ArrowLeftRight', ports_in: [p('body', 'any')], ports_out: [p('response', 'object')], config: { method: 'GET', url: 'https://', headers: [] } }),
   b({ id: 'tool.mail_send', group: 'tool', type: 'tool', label: '메일 발송', description: '팀 메일 계정으로 보냅니다', icon: 'Send', ports_in: [p('to', 'string', true, '받는 사람'), p('body', 'string', true, '본문')], ports_out: [p('message_id', 'string')], config: { tool: 'mail_send', credential: 'smtp' } }),
