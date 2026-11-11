@@ -6,6 +6,7 @@ import { useMembers, useCurrentWorkspace } from '@/entities/workspace';
 import { Button } from '@/shared/ui/button';
 import { portsFromFields } from '../convert';
 import type { FormProps } from './forms-ai';
+import { ExportForm } from './forms-export';
 import { AreaField, CheckField, SelectField, SliderField, TextField } from './fields';
 import { TemplateInput } from './template-input';
 import { PresetBar, ResultPreview } from './three-d-extras';
@@ -39,7 +40,9 @@ export function HttpForm({ cfg, set, disabled }: FormProps) {
   );
 }
 
-export function CodeForm({ cfg, set, disabled, bindings }: FormProps) {
+export function CodeForm(props: FormProps) {
+  const { node, cfg, set, disabled, bindings } = props;
+  if (node.data.block === 'data.export_document') return <ExportForm {...props} />;
   if (cfg.template !== undefined) return <TemplateInput label="텍스트 템플릿" value={String(cfg.template ?? '')} onChange={(v) => set({ template: v })} options={bindings} disabled={disabled} />;
   if (cfg.expression !== undefined) return <TextField label="JSONPath" value={String(cfg.expression)} onChange={(v) => set({ expression: v })} mono disabled={disabled} />;
   if (cfg.seconds !== undefined) return <SliderField label="대기(초)" value={Number(cfg.seconds)} onChange={(v) => set({ seconds: v })} min={1} max={600} disabled={disabled} />;

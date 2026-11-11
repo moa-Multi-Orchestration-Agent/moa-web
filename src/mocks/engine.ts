@@ -101,6 +101,7 @@ export function fakeOutput(n: NodeDef, input: Record<string, unknown>): unknown 
     case 'http':
       return { response: { status: 200, body: { items: 12 } } };
     case 'code':
+      if (n.block === 'data.export_document') return { file: exportRef(n, input) };
       return { result: { rows: 12, ok: true } };
     case 'condition':
       return { branch: 'true', value: 0.82 };
@@ -118,6 +119,14 @@ export function fakeOutput(n: NodeDef, input: Record<string, unknown>): unknown 
     default:
       return null;
   }
+}
+
+/** 문서 내보내기 노드의 목 결과. 내려받기 핸들러가 키를 보고 작은 PDF·PNG를 돌려준다. */
+function exportRef(n: NodeDef, input: Record<string, unknown>) {
+  const png = n.config.format === 'png';
+  const raw = String(n.config.filename || n.config.title || '문서').replace(/\{\{[^}]*\}\}/g, String(Object.values(input).find((v) => typeof v === 'string') ?? '')).replace(/[\\/:*?"<>|]+/g, ' ').trim() || '문서';
+  const ext = png ? '.png' : '.pdf';
+  return { kind: 'file', filename: raw.toLowerCase().endsWith(ext) ? raw : raw + ext, mime: png ? 'image/png' : 'application/pdf', size: png ? 68 : 320, storage_key: `outputs/mock/${n.id}${ext}`, ...(png ? {} : { pages: 1 }) };
 }
 
 /** 실행 시간(ms) — 시드 데이터용 */

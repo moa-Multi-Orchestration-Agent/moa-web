@@ -67,6 +67,7 @@ export const BLOCKS: Block[] = [
   b({ id: 'data.csv', group: 'data', type: 'code', label: 'CSV 파싱', description: 'CSV를 행 목록으로 바꿉니다', icon: 'Sheet', ports_in: [p('text', 'string', true, 'CSV')], ports_out: [p('rows', 'array')], config: { delimiter: ',' } }),
   b({ id: 'data.filter', group: 'data', type: 'code', label: '필터', description: '조건에 맞는 항목만 남깁니다', icon: 'Filter', ports_in: [p('items', 'array', true, '목록')], ports_out: [p('items', 'array')], config: { condition: '' } }),
   b({ id: 'data.aggregate', group: 'data', type: 'code', label: '정렬 · 집계', description: '정렬하거나 합계를 냅니다', icon: 'ArrowDownWideNarrow', ports_in: [p('items', 'array', true, '목록')], ports_out: [p('result', 'any')], config: { sort_by: '', limit: 10 } }),
+  b({ id: 'data.export_document', group: 'data', type: 'code', label: '문서 내보내기', description: '글을 PDF나 PNG 파일로 만듭니다', icon: 'FileDown', ports_in: [p('content', 'string', true, '내용'), p('title', 'string')], ports_out: [p('file', 'file')], config: { format: 'pdf', title: '', filename: '', page_size: 'A4', width: 1080 } }),
 
   // 지식 (5)
   b({ id: 'kb.search', group: 'knowledge', type: 'kb_search', label: 'RAG 검색', description: '지식베이스에서 근거를 찾습니다', icon: 'BookOpenText', ports_in: [p('query', 'string', true, '질문')], ports_out: [p('chunks', 'array'), p('text', 'string')], config: { kb_id: null, top_k: 4 } }),

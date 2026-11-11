@@ -7,6 +7,9 @@ import { nowIso, uuid } from '../lib/util';
 import { agentPlan, cancelSimulation, ensureStateForSeeded, eventsOf, isStreamDone, resumeAfterApproval, startSimulation, subscribe } from '../simulator';
 import { approvalView, runDetailView, runView } from '../views';
 
+const MOCK_PDF = '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n';
+const MOCK_PNG = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAgAB/ax5ZQAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
+
 const TERMINAL = ['succeeded', 'failed', 'canceled'];
 
 function monthSpent(wsId: string) {
@@ -157,6 +160,19 @@ export const runHandlers = [
     if (TERMINAL.includes(r.status)) return problem('MOA-RUN-001', `이미 ${r.status} 상태라 취소할 수 없습니다.`);
     cancelSimulation(r);
     return json(runView(r));
+  }),
+  // 실행이 만든 파일 내려받기. 목은 파일을 보관하지 않으므로 형식만 맞는 작은 PDF·PNG를 돌려준다.
+  http.get(`${API}/downloads/*`, ({ request }) => {
+    const ctx = guard(request);
+    if (isResponse(ctx)) return ctx;
+    const url = new URL(request.url);
+    const key = decodeURIComponent(url.pathname.split('/downloads/')[1] ?? '');
+    if (!/^(outputs|uploads)\/[^/]/.test(key) || key.includes('..')) return notFound('파일');
+    const png = key.endsWith('.png');
+    const name = url.searchParams.get('name') || (png ? '문서.png' : '문서.pdf');
+    return new HttpResponse(png ? MOCK_PNG : MOCK_PDF, {
+      headers: { 'Content-Type': png ? 'image/png' : 'application/pdf', 'Content-Disposition': `attachment; filename*=utf-8''${encodeURIComponent(name)}` },
+    });
   }),
   // SSE (design.md 1.5.2). 재연결하면 Last-Event-ID 다음 이벤트부터 보낸다.
   http.get(`${API}/runs/:id/events`, ({ request, params }) => {
