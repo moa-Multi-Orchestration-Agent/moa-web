@@ -17,6 +17,8 @@ export const BLOCK_GROUPS = [
 
 const p = (name: string, type: Port['type'], required = false, label?: string): Port => ({ name, type, required, label });
 const LLM_IN = [p('query', 'string', true, '질문·지시'), p('context', 'any', false, '참고 자료')];
+/** 첨부 파일(PDF·이미지)을 받는 LLM 블록. 백엔드 node_catalog.json과 같다(에이전트 호출 블록은 제외). */
+const LLM_IN_FILES = [...LLM_IN, p('attachments', 'file', false, '첨부 파일')];
 const LLM_OUT = [p('text', 'string'), p('json', 'object')];
 
 type B = Omit<Block, 'config'> & { config?: Record<string, unknown> };
@@ -32,12 +34,12 @@ export const BLOCKS: Block[] = [
   b({ id: 'output.result', group: 'io', type: 'output', label: '결과 반환', description: '워크플로 결과를 돌려줍니다', icon: 'Flag', ports_in: [p('result', 'any', true, '결과')], ports_out: [] }),
 
   // LLM (7)
-  b({ id: 'llm.generate', group: 'llm', type: 'llm', label: 'LLM', description: '프롬프트로 글을 생성합니다', icon: 'Sparkles', ports_in: LLM_IN, ports_out: LLM_OUT, config: { model: 'claude-sonnet-4', prompt: '', fallback_models: [], temperature: 0.7 } }),
-  b({ id: 'llm.summarize', group: 'llm', type: 'llm', label: '요약', description: '긴 글을 핵심만 요약합니다', icon: 'AlignLeft', ports_in: LLM_IN, ports_out: LLM_OUT, config: { model: 'claude-haiku-4', prompt: '다음 내용을 5줄로 요약해 줘.\n\n{{in.output.text}}', fallback_models: [] } }),
-  b({ id: 'llm.classify', group: 'llm', type: 'llm', label: '분류', description: '정해진 라벨 중 하나로 분류합니다', icon: 'Tags', ports_in: LLM_IN, ports_out: [p('label', 'string'), p('score', 'number')], config: { model: 'claude-haiku-4', prompt: '', labels: ['문의', '불만', '칭찬'] } }),
-  b({ id: 'llm.extract', group: 'llm', type: 'llm', label: '정보 추출', description: '글에서 구조화된 값을 뽑습니다', icon: 'Braces', ports_in: LLM_IN, ports_out: [p('json', 'object')], config: { model: 'claude-sonnet-4', prompt: '', output_schema: {} } }),
-  b({ id: 'llm.translate', group: 'llm', type: 'llm', label: '번역', description: '다른 언어로 옮깁니다', icon: 'Languages', ports_in: LLM_IN, ports_out: LLM_OUT, config: { model: 'claude-haiku-4', prompt: '', target_lang: 'en' } }),
-  b({ id: 'llm.vision', group: 'llm', type: 'llm', label: '이미지 이해', description: '이미지를 보고 설명합니다', icon: 'ScanEye', ports_in: [p('image', 'image', true, '이미지'), p('query', 'string')], ports_out: LLM_OUT, config: { model: 'claude-sonnet-4', prompt: '' } }),
+  b({ id: 'llm.generate', group: 'llm', type: 'llm', label: 'LLM', description: '프롬프트로 글을 생성합니다', icon: 'Sparkles', ports_in: LLM_IN_FILES, ports_out: LLM_OUT, config: { model: 'claude-sonnet-4', prompt: '', fallback_models: [], temperature: 0.7 } }),
+  b({ id: 'llm.summarize', group: 'llm', type: 'llm', label: '요약', description: '긴 글을 핵심만 요약합니다', icon: 'AlignLeft', ports_in: LLM_IN_FILES, ports_out: LLM_OUT, config: { model: 'claude-haiku-4', prompt: '다음 내용을 5줄로 요약해 줘.\n\n{{in.output.text}}', fallback_models: [] } }),
+  b({ id: 'llm.classify', group: 'llm', type: 'llm', label: '분류', description: '정해진 라벨 중 하나로 분류합니다', icon: 'Tags', ports_in: LLM_IN_FILES, ports_out: [p('label', 'string'), p('score', 'number')], config: { model: 'claude-haiku-4', prompt: '', labels: ['문의', '불만', '칭찬'] } }),
+  b({ id: 'llm.extract', group: 'llm', type: 'llm', label: '정보 추출', description: '글에서 구조화된 값을 뽑습니다', icon: 'Braces', ports_in: LLM_IN_FILES, ports_out: [p('json', 'object')], config: { model: 'claude-sonnet-4', prompt: '', output_schema: {} } }),
+  b({ id: 'llm.translate', group: 'llm', type: 'llm', label: '번역', description: '다른 언어로 옮깁니다', icon: 'Languages', ports_in: LLM_IN_FILES, ports_out: LLM_OUT, config: { model: 'claude-haiku-4', prompt: '', target_lang: 'en' } }),
+  b({ id: 'llm.vision', group: 'llm', type: 'llm', label: '이미지 이해', description: '이미지를 보고 설명합니다', icon: 'ScanEye', ports_in: [p('image', 'image', true, '이미지'), p('query', 'string'), p('attachments', 'file', false, '첨부 파일')], ports_out: LLM_OUT, config: { model: 'claude-sonnet-4', prompt: '' } }),
   b({ id: 'llm.agent', group: 'llm', type: 'llm', label: '에이전트 호출', description: '다른 에이전트에게 일을 맡깁니다', icon: 'Bot', ports_in: LLM_IN, ports_out: LLM_OUT, config: { agent_id: null, prompt: '{{in.output.query}}' } }),
 
   // 도구·MCP (8)
@@ -91,7 +93,7 @@ export const blockById = (id: string) => BLOCKS.find((x) => x.id === id);
 
 /** 입력 노드의 출력 포트는 정의한 필드에서 나온다 */
 export function inputPortsFromFields(fields: { name: string; type: string; required?: boolean }[]): Port[] {
-  return fields.map((f) => ({ name: f.name, type: (f.type === 'integer' ? 'number' : f.type) as Port['type'], label: f.name }));
+  return fields.map((f) => ({ name: f.name, type: (f.type === 'integer' ? 'number' : f.type === 'files' ? 'file' : f.type) as Port['type'], label: f.name }));
 }
 
 /** 블록으로 노드 정의 만들기(시드 데이터·템플릿용) */
