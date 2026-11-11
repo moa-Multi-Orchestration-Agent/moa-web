@@ -436,6 +436,9 @@ export const copy = {
     readFailed: (name: string) => `'${name}' 파일을 읽지 못했습니다.`,
     required: '파일을 첨부해 주세요.',
     reused: (n: number) => `이전에 올린 파일 ${n}개를 다시 씁니다`,
+    downloads: '내려받기',
+    download: (name: string) => `${name} 내려받기`,
+    downloadFailed: (reason: string) => `파일을 내려받지 못했어요. ${reason}`,
   },
 } as const;
 
