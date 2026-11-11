@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { Background, ControlButton, Controls, MiniMap, ReactFlow, useReactFlow, type Connection, type Edge, type IsValidConnection } from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
 import { LayoutGrid, Redo2, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { isAssignable, portType, type Block } from '@/entities/workflow';

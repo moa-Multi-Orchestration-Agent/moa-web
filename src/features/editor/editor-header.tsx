@@ -11,6 +11,7 @@ import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Guarded } from '@/shared/ui/guarded';
 import { useEditorStore } from './store';
+import { RecoverWorkflow } from './recover-workflow';
 
 export type EditorTab = 'design' | 'runs' | 'deploy';
 
@@ -107,6 +108,7 @@ export function EditorHeader({
         ))}
       </nav>
       <div className="ml-auto flex items-center gap-2">
+        {canEdit ? <RecoverWorkflow wf={wf} /> : null}
         {issues ? (
           <span className="text-danger inline-flex items-center gap-1 text-xs font-semibold">
             <AlertCircle className="size-3.5" aria-hidden /> 오류 {issues}

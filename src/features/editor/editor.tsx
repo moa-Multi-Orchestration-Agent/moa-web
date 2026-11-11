@@ -53,7 +53,7 @@ function EditorBody({ workflowId }: { workflowId: string }) {
   useEffect(() => {
     if (catalog.data) registerBlockIcons(Object.fromEntries(catalog.data.blocks.map((b) => [b.id, b.icon])));
   }, [catalog.data]);
-  useEffect(() => () => useEditorStore.setState({ workflowId: null }), []);
+  // 재연결·Fast Refresh 중에도 마지막 초안을 유지한다. 다른 ID를 열면 위에서 초기화한다.
 
   const ready = loadedId === workflowId;
   const { saveNow } = useAutosave(workflowId, ready && canEdit);
@@ -115,7 +115,7 @@ function EditorBody({ workflowId }: { workflowId: string }) {
       </div>
     );
   }
-  if (wf.isError) {
+  if (wf.isError && !wf.data) {
     const nf = isApiError(wf.error) && wf.error.status === 404;
     return (
       <div className="flex h-full items-center justify-center p-6">
