@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { JetBrains_Mono } from 'next/font/google';
 import { Providers } from './providers';
+// 편집기와 미리보기의 필수 레이아웃 CSS는 지연 로딩 청크가 아닌 공통 레이아웃에서 유지한다.
+import '@xyflow/react/dist/style.css';
 import './globals.css';
 
 const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains-mono', display: 'swap' });

@@ -2,7 +2,6 @@
 
 import { useMemo } from 'react';
 import { Background, Handle, Position, ReactFlow, ReactFlowProvider, type Edge, type Node, type NodeProps } from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
 import type { WorkflowDefinition } from '@/entities/workflow';
 import { nodeColor } from '@/shared/ui/node-colors';
 
