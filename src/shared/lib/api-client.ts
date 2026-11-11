@@ -6,6 +6,8 @@
  * - Problem Details(RFC 9457, design.md 3.3.1) → ApiError
  */
 
+import { prepareRequest } from './request-preparation';
+
 export interface ProblemDetails {
   type?: string;
   title?: string;
@@ -115,6 +117,7 @@ export async function request<T>(method: string, path: string, opts: RequestOpti
 
   let res: Response;
   try {
+    await prepareRequest();
     res = await fetch(url, { method, headers, body, signal: opts.signal, credentials: 'include' });
   } catch (e) {
     if ((e as Error)?.name === 'AbortError') throw e;

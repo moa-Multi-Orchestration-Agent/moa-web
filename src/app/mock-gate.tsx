@@ -10,18 +10,32 @@ const MOCKING = process.env.NEXT_PUBLIC_API_MOCKING === 'enabled';
  */
 export function MockGate({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(!MOCKING);
+  const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!MOCKING) return;
     let alive = true;
     import('@/mocks/browser')
       .then(({ startMockWorker }) => startMockWorker())
-      .catch((e) => console.error('[MSW] 시작 실패', e))
-      .finally(() => alive && setReady(true));
+      .then(() => { if (alive) setReady(true); })
+      .catch((e) => {
+        console.error('[MSW] 시작 실패', e);
+        if (alive) setError(true);
+      });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [attempt]);
+
+  if (error) {
+    return (
+      <div role="alert" className="flex h-dvh flex-col items-center justify-center gap-3 text-sm">
+        <p>목 API를 시작하지 못했습니다. 연결을 확인하고 다시 시도해 주세요.</p>
+        <button className="underline" onClick={() => { setError(false); setAttempt((n) => n + 1); }}>다시 시도</button>
+      </div>
+    );
+  }
 
   if (!ready) {
     return (
