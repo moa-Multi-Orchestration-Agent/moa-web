@@ -57,8 +57,6 @@ export function createRun(wsId: string, b: CreateRunBody): DbRun | Response {
     }
   }
 
-  if (definition.nodes.some((n) => n.block === 'tool.stock_news_cards')) return problem('MOA-SYS-503', '실제 뉴스 카드 노드는 실제 백엔드 모드에서 실행해 주세요.');
-
   // 컨텍스트 세션: 에이전트 대화는 세션을 이어 쓴다
   let sessionId = b.context_session_id && db.context_sessions.some((s) => s.id === b.context_session_id) ? b.context_session_id : null;
   const runId = uuid();

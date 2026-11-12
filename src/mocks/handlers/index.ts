@@ -14,11 +14,9 @@ import { teamHandlers } from './team';
 import { templateHandlers } from './templates';
 import { workflowHandlers } from './workflows';
 import { workspaceHandlers } from './workspaces';
-import { stockNewsHandlers } from './stock-news';
 
 /** design.md 2.6.2 엔드포인트 전부 + 화면에 필요한 조회 API(frontend-plan 5절) */
 export const handlers: RequestHandler[] = [
-  ...stockNewsHandlers,
   ...middleware,
   ...authHandlers,
   ...teamHandlers,

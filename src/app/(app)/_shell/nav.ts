@@ -3,7 +3,6 @@ import {
   Home,
   LayoutGrid,
   LayoutTemplate,
-  Newspaper,
   Plug,
   Rocket,
   ScrollText,
@@ -41,7 +40,6 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { href: '/deploy', label: copy.nav.deploy, short: copy.nav.deployShort, icon: Rocket, match: ['/deploy'] },
       { href: '/runs', label: copy.nav.runs, short: copy.nav.runsShort, icon: ScrollText, match: ['/runs'] },
-      { href: '/stock-news', label: copy.cardNews.title, short: '카드뉴스', icon: Newspaper, match: ['/stock-news'] },
       {
         href: '/integrations',
         label: copy.nav.integrations,

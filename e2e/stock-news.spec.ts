@@ -1,22 +1,31 @@
 import { test, expect } from '@playwright/test';
 
-test('저장된 최신 JSON으로 카드 5장을 자동 표시하고 JPEG를 내려받는다', async ({ page }) => {
-  test.skip(process.env.STOCK_NEWS_PREVIEW !== '1', '실제 API 계약으로 만든 테스트 수집본 서버가 필요합니다.');
-  await page.goto('/login');
-  await page.getByLabel('이메일', { exact: true }).fill('demo@moa.dev');
-  await page.getByLabel('비밀번호', { exact: true }).fill('moa1234');
-  await page.getByRole('button', { name: '로그인', exact: true }).click();
-  await expect(page).toHaveURL(/\/home/);
-  await page.getByRole('link', { name: '국내 주식 카드뉴스', exact: true }).click();
-  const images = page.getByRole('img', { name: /국내 주식 뉴스 카드/ });
-  await expect(images).toHaveCount(5);
+test('새로 만들기의 설명으로 워크플로를 구성하고 편집기 안에서 카드 결과를 확인한다', async ({ page }) => {
+  test.skip(process.env.E2E_REAL === '1', '목 API로 편집기 구성과 샘플 이미지 생성을 확인한다.');
+  await page.goto('/studio/new?type=workflow');
+  await expect(page.getByRole('link', { name: '국내 주식 카드뉴스', exact: true })).toHaveCount(0);
+  await page.getByLabel('이름', { exact: true }).fill('주식 카드뉴스 인스타 업로드');
+  await page.getByLabel('한 줄 설명').fill('정해진 시간마다 국내주식 뉴스를 스크랩해서 카드뉴스를 생성한후 인스타에 업로드하는 것을 돕습니다.');
+  await page.getByRole('button', { name: '만들기', exact: true }).click();
+  await expect(page).toHaveURL(/\/workflows\/[^/]+\/edit/);
+  await expect(page.locator('.react-flow__node')).toHaveCount(6);
+  await page.getByTestId('node-cards').click();
+  await expect(page.getByLabel('표지 제목', { exact: true })).toHaveValue('국내 주식 브리핑');
+  await expect(page.getByLabel('인스타 계정명', { exact: true })).toHaveValue('ryorlr_moa');
+  await page.getByRole('button', { name: '테스트 실행', exact: true }).click();
+  await page.getByRole('button', { name: '실행', exact: true }).click();
+  await page.getByRole('tab', { name: '카드뉴스', exact: true }).click();
+  const images = page.getByRole('img', { name: /워크플로 카드뉴스/ });
+  await expect(images).toHaveCount(5, { timeout: 30000 });
+  await expect(page.getByTestId('console-approve')).toBeVisible();
   await expect.poll(() => images.first().evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(1080);
   expect(await images.first().evaluate((image: HTMLImageElement) => image.naturalHeight)).toBe(1350);
-  await expect(page.getByRole('link', { name: /원문 보기/ })).toHaveCount(4);
   const downloaded = page.waitForEvent('download');
-  await page.getByRole('link', { name: 'JPEG 저장', exact: true }).first().click();
+  await page.getByRole('link', { name: '1장 JPEG 저장', exact: true }).click();
   const file = await downloaded;
-  expect(file.suggestedFilename()).toMatch(/stock-news-.*-1\.jpg$/);
-  await file.saveAs('tmp/stock-news-cover.jpg');
-  await page.screenshot({ path: 'tmp/stock-news-gallery.png', fullPage: true });
+  expect(file.suggestedFilename()).toBe('moa-card-1.jpg');
+  await file.saveAs('tmp/workflow-card-news-cover.jpg');
+  await expect(page).toHaveURL(/\/workflows\/[^/]+\/edit/);
+  expect((await page.request.get('/stock-news')).status()).toBe(404);
+  await page.screenshot({ path: 'tmp/workflow-card-news-fixed.png' });
 });

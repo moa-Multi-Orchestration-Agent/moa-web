@@ -5,11 +5,10 @@
 export const copy = {
   cardNews: {
     title: '국내 주식 카드뉴스', format: '5장 · 1080 × 1350 · JPEG', generating: '이미지 생성 중…', caption: '게시 문안·출처',
-    note: '서버가 수집·요약해 저장한 최신 뉴스입니다. 인스타그램 게시 전 이미지와 출처를 확인해 주세요.',
-    latest: '최신 국내 주식 카드뉴스', refresh: '지금 수집 요청', collecting: '수집·요약 중…', noNews: '아직 수집된 뉴스가 없습니다.',
-    emptyHelp: '서버의 실제 LLM 키와 수집 설정을 연결하면 최신 카드가 자동으로 표시됩니다.',
-    mockMode: '현재는 목 API 모드입니다. 실제 뉴스는 pnpm dev:backend로 실행한 웹에서 확인할 수 있습니다.',
-    scheduleOff: '자동 수집 꺼짐 · 서버에서 예약 설정이 필요합니다.', ready: '검토 대기', captionDownload: 'JSON·원문 출처 저장',
+    note: '이 워크플로의 카드 생성 노드 실행 결과입니다. 인스타그램 게시 기능은 아직 연결되지 않았습니다.',
+    empty: '카드 생성 노드를 실행하면 이곳에 이미지 5장과 출처가 표시됩니다.',
+    mockMode: '목 API의 샘플 실행 결과입니다. 실제 기사 수집·LLM 요약은 실제 백엔드와 모델 키를 연결한 뒤 실행해 주세요.',
+    captionDownload: '실행 결과 JSON 저장',
   },
   app: {
     name: 'MOA',

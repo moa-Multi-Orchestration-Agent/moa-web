@@ -4,6 +4,7 @@
 import type { NodeDef, WorkflowDefinition } from '@/entities/workflow/model';
 import { isLoopBackEdge, validateDefinition } from '@/entities/workflow/graph';
 import { MODELS } from '@/entities/agent/model';
+import { MOCK_NEWS_ARTICLES } from './fixtures/card-news';
 
 export const SAMPLE_GLB = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Duck/glTF-Binary/Duck.glb';
 export const SAMPLE_PREVIEW = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Duck/screenshot/screenshot.png';
@@ -80,6 +81,7 @@ export function fakeOutput(n: NodeDef, input: Record<string, unknown>): unknown 
     case 'output':
       return { result: '완료', delivered_at: new Date().toISOString() };
     case 'llm':
+      if (n.block === 'llm.extract' && n.config.result_kind === 'news_cards') return { json: { articles: MOCK_NEWS_ARTICLES.map((a) => ({ article_id: a.article_id, title: a.title, summary: a.summary })) } };
       if (n.block === 'llm.classify') return { label: '결제', score: 0.86 };
       if (n.block === 'llm.extract') return { json: { title: '추출 결과', amount: 12000, date: '2026-10-21' } };
       return { text: llmText(n) };
@@ -92,6 +94,8 @@ export function fakeOutput(n: NodeDef, input: Record<string, unknown>): unknown 
         text: '관련 문단 1\n관련 문단 2',
       };
     case 'tool':
+      if (n.block === 'tool.news_collect') return { articles: MOCK_NEWS_ARTICLES };
+      if (n.block === 'tool.card_news_render') return { sample: true, bundle: { title: `[샘플] ${String(n.config.title ?? '국내 주식 브리핑')}`, account: String(n.config.account ?? 'ryorlr_moa'), articles: MOCK_NEWS_ARTICLES } };
       if (n.block === 'tool.web_search')
         return { results: [1, 2, 3, 4, 5].map((i) => ({ title: `검색 결과 ${i}`, url: `https://example.com/news/${i}` })) };
       if (n.block === 'tool.mail_send') return { message_id: `<${Date.now()}@moa.dev>` };

@@ -79,9 +79,14 @@ export function NewView() {
   const instantiate = useInstantiateTemplate();
   const createAgent = useCreateAgent();
   const createWorkflow = useCreateWorkflow();
-  const busy = instantiate.isPending || createAgent.isPending || createWorkflow.isPending;
+  const busy = instantiate.isPending || createAgent.isPending || createWorkflow.isPending || (start === 'auto' && templates.isPending);
 
   const submit = async () => {
+    if (start === 'auto' && templates.isPending) return;
+    if (start === 'auto' && templates.isError) {
+      toast.error('자동 구성 템플릿을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+      return;
+    }
     if (start === 'template') {
       router.push(`/templates?kind=${kind}`);
       return;

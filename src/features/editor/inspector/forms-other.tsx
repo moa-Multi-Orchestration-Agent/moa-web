@@ -116,6 +116,7 @@ export function InputForm({ cfg, set, setData, disabled }: FormProps) {
     <div className="space-y-3">
       <SelectField label="트리거" value={String(cfg.trigger ?? 'manual')} onChange={(v) => set({ trigger: v })} options={[{ value: 'manual', label: '수동 실행' }, { value: 'agent', label: '에이전트 · API 호출' }, { value: 'schedule', label: '예약 (Cron)' }, { value: 'webhook', label: 'Webhook 수신' }, { value: 'mail', label: '메일 수신' }]} disabled={disabled} />
       {cfg.trigger === 'schedule' ? <TextField label="Cron 식" value={String(cfg.cron ?? '0 9 * * *')} onChange={(v) => set({ cron: v })} mono disabled={disabled} hint="예: 0 9 * * * (매일 09:00)" /> : null}
+      {cfg.trigger === 'schedule' ? <><SelectField label="시간대" value={String(cfg.timezone ?? 'Asia/Seoul')} onChange={(timezone) => set({ timezone })} options={[{ value: 'Asia/Seoul', label: '한국 시간 (Asia/Seoul)' }, { value: 'UTC', label: 'UTC' }]} disabled={disabled} /><p className="text-muted text-xs">예약 설정을 저장합니다. 실제 자동 실행에는 배포 서버의 워크플로 스케줄러 연결이 필요합니다.</p></> : null}
       <p className="text-sm font-semibold">입력 필드</p>
       {fields.map((f, i) => (
         <div key={i} className="space-y-2 rounded-md border p-2.5">
