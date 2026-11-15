@@ -11,7 +11,7 @@ const nodes = [
 ];
 const edge = (id: string, source: string, source_port: string, target: string, target_port: string) => ({ id, source, source_port, target, target_port, condition: null });
 export const STOCK_NEWS_TEMPLATE: DbTemplate = {
-  id: 'tpl-25', name: '주식 카드뉴스 인스타 업로드', summary: '정해진 시간마다 국내주식 뉴스를 스크랩해서 카드뉴스를 생성한후 인스타에 업로드하는 것을 돕습니다.',
+  id: 'tpl-stock-news', name: '주식 카드뉴스 인스타 업로드', summary: '정해진 시간마다 국내주식 뉴스를 스크랩해서 카드뉴스를 생성한후 인스타에 업로드하는 것을 돕습니다.',
   description: '기존 워크플로에서 예약 → 뉴스 수집 → LLM 요약 → 카드 생성 → 승인으로 구성합니다. 카드 이미지는 실행 콘솔에서 확인합니다. 실제 예약 실행과 인스타 게시 연결은 별도 작업입니다.',
   category: 'content', kind: 'workflow', difficulty: 'medium', icon: '📰', trigger: 'schedule', model: 'claude-haiku-4', skills: ['주식 뉴스 수집', '카드뉴스 생성'], required_connections: [],
   definition: { nodes, edges: [
