@@ -16,10 +16,12 @@ interface FilePickerProps {
   invalid?: boolean;
   describedBy?: string;
   compact?: boolean;
+  /** 한도 안내 문구를 바꿀 때(기본 첨부 등) */
+  hint?: string;
 }
 
 /** PDF·이미지 첨부 고르기(끌어다 놓기 지원). 검사는 부르는 쪽에서 checkFiles로 한다. */
-export function FilePicker({ id, files, onChange, multiple = true, disabled, invalid, describedBy, compact }: FilePickerProps) {
+export function FilePicker({ id, files, onChange, multiple = true, disabled, invalid, describedBy, compact, hint }: FilePickerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
   const t = copy.attachments;
@@ -55,7 +57,7 @@ export function FilePicker({ id, files, onChange, multiple = true, disabled, inv
           <Paperclip aria-hidden /> {t.pick}
         </Button>
         <span className="text-muted min-w-0 truncate text-xs">
-          {compact ? t.limits(ATTACH_MAX_FILES, formatBytes(ATTACH_MAX_TOTAL_BYTES)) : `${t.dropHint} · ${t.limits(ATTACH_MAX_FILES, formatBytes(ATTACH_MAX_TOTAL_BYTES))}`}
+          {hint ?? (compact ? t.limits(ATTACH_MAX_FILES, formatBytes(ATTACH_MAX_TOTAL_BYTES)) : `${t.dropHint} · ${t.limits(ATTACH_MAX_FILES, formatBytes(ATTACH_MAX_TOTAL_BYTES))}`)}
         </span>
         <input
           ref={inputRef}

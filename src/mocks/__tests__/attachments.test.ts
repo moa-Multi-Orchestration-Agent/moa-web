@@ -64,4 +64,23 @@ describe('첨부 포트·스키마', () => {
     expect(out.nodes[0]!.ports_in.map((p) => p.name)).toEqual(['query', 'context', 'attachments']);
     expect(withCatalogPorts(out, BLOCKS)).toBe(out); // 이미 있으면 그대로
   });
+
+  it('기본 첨부를 올리면 assets 경로의 참조를 돌려주고, 실행 때 그 참조를 받는다', async () => {
+    const ref = await api.post<FileRef>('/files', { filename: '규정.pdf', data_base64: PDF_B64 });
+    expect([ref.kind, ref.filename, ref.mime]).toEqual(['file', '규정.pdf', 'application/pdf']);
+    expect(ref.storage_key.startsWith(`uploads/${WS1}/assets/`)).toBe(true);
+    expect((await fail(api.post('/files', { filename: 'a.docx', data_base64: 'UEsDBA==' }))).status).toBe(415);
+
+    const wf = db.workflows.find((w) => w.name === '사내 문서 Q&A')!;
+    const run = await api.post<RunRow>('/runs', { workflow_id: wf.id, input: { question: 'q', files: [ref] } });
+    expect((run.input as { files: FileRef[] }).files).toEqual([ref]);
+  });
+
+  it('배포 입력 스키마에는 기본 첨부의 저장 경로 대신 파일 이름만 나온다', () => {
+    const ref = { kind: 'file', filename: '규정.pdf', mime: 'application/pdf', size: 1, storage_key: 'uploads/w/assets/a.pdf' };
+    const schema = inputSchemaOf({ nodes: [{ id: 'in', type: 'input', name: '', config: { fields: [{ name: 'guide', type: 'files', default: [ref] }, { name: 'n', type: 'number', default: 3 }] }, ports_in: [], ports_out: [] }] }) as { properties: Record<string, Record<string, unknown>> };
+    expect(schema.properties.guide).toMatchObject({ 'x-moa-default-files': ['규정.pdf'] });
+    expect(schema.properties.guide).not.toHaveProperty('default');
+    expect(schema.properties.n).toMatchObject({ default: 3 });
+  });
 });

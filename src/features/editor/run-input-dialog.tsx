@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Loader2, Play } from 'lucide-react';
 import type { InputField } from '@/entities/workflow';
-import { checkFiles, filesToUploads } from '@/shared/lib/attachments';
+import { checkFiles, defaultRefs, filesToUploads } from '@/shared/lib/attachments';
 import { copy } from '@/shared/lib/copy';
 import { Button } from '@/shared/ui/button';
 import { Checkbox } from '@/shared/ui/checkbox';
@@ -42,7 +42,9 @@ export function RunInputDialog({ open, onOpenChange, fields, onRun }: { open: bo
     const out: Record<string, unknown> = {};
     for (const f of fileFields) {
       const picked = files[f.name] ?? [];
-      if (f.required && !picked.length) errs[f.name] = copy.attachments.required;
+      const fallback = defaultRefs(f.default);
+      if (!picked.length && fallback.length) out[f.name] = f.type === 'file' ? fallback[0] : fallback; // 기본 첨부(서버가 있는지 확인)
+      if (f.required && !picked.length && !fallback.length) errs[f.name] = copy.attachments.required;
       else if (picked.length) errs[f.name] = checkFiles(picked) ?? '';
       if (!errs[f.name]) delete errs[f.name];
     }
@@ -113,7 +115,10 @@ export function RunInputDialog({ open, onOpenChange, fields, onRun }: { open: bo
                     {f.required ? <span className="text-danger"> *</span> : null} <span className="text-muted font-normal">· {f.type}</span>
                   </Label>
                   {f.type === 'file' || f.type === 'files' ? (
-                    <FilePicker id={`run-${f.name}`} files={files[f.name] ?? []} onChange={(next) => setFiles((s) => ({ ...s, [f.name]: next }))} multiple={f.type === 'files'} disabled={preparing} invalid={!!errors[f.name]} describedBy={errors[f.name] ? `run-${f.name}-err` : undefined} />
+                    <>
+                      <FilePicker id={`run-${f.name}`} files={files[f.name] ?? []} onChange={(next) => setFiles((s) => ({ ...s, [f.name]: next }))} multiple={f.type === 'files'} disabled={preparing} invalid={!!errors[f.name]} describedBy={errors[f.name] ? `run-${f.name}-err` : undefined} />
+                      {!files[f.name]?.length && defaultRefs(f.default).length ? <p className="text-muted text-xs">{copy.attachments.usingDefault(defaultRefs(f.default).map((r) => r.filename).join(', '))}</p> : null}
+                    </>
                   ) : f.type === 'object' || f.type === 'array' ? (
                     <Textarea id={`run-${f.name}`} value={String(values[f.name] ?? '')} onChange={(e) => setValues((s) => ({ ...s, [f.name]: e.target.value }))} className="font-mono text-xs" placeholder={f.type === 'array' ? '[]' : '{}'} aria-invalid={!!errors[f.name]} />
                   ) : (

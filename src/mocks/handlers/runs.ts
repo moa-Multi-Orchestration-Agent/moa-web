@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw';
 import type { WorkflowDefinition } from '@/entities/workflow/model';
 import { db, type DbRun } from '../db';
 import { API, body, guard, isResponse, json, notFound, paginate, problem } from '../lib/http';
-import { ingestMockFiles } from '../lib/attachments';
+import { ingestMockFiles, mockDefaultFile } from '../lib/attachments';
 import { nowIso, uuid } from '../lib/util';
 import { agentPlan, cancelSimulation, ensureStateForSeeded, eventsOf, isStreamDone, resumeAfterApproval, startSimulation, subscribe } from '../simulator';
 import { approvalView, runDetailView, runView } from '../views';
@@ -130,6 +130,13 @@ function filterRuns(wsId: string, url: URL) {
 }
 
 export const runHandlers = [
+  // 입력 노드 기본 첨부 올리기(백엔드 POST /api/v1/files)
+  http.post(`${API}/files`, async ({ request }) => {
+    const ctx = guard(request, 'maker');
+    if (isResponse(ctx)) return ctx;
+    const ref = mockDefaultFile(ctx.wsId, await body<{ filename?: string; data_base64?: string }>(request));
+    return ref instanceof Response ? ref : json(ref, 201);
+  }),
   http.get(`${API}/runs`, ({ request }) => {
     const ctx = guard(request);
     if (isResponse(ctx)) return ctx;
