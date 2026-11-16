@@ -6,6 +6,7 @@
 import type { NodeDef, WorkflowDefinition } from '@/entities/workflow/model';
 import type { RunStatus } from '@/entities/run/model';
 import { db, type DbContextBlock, type DbRun } from './db';
+import { collectFileRefs } from '@/shared/lib/attachments';
 import { costOf, errorCodeFor, executionPlan, fakeOutput, failNodeFor, llmText, SAMPLE_GLB, SAMPLE_PREVIEW, tokensFor } from './engine';
 import { countTokens, fid, nowIso, uuid } from './lib/util';
 
@@ -182,7 +183,7 @@ async function advance(run: DbRun) {
   const output = st.agentMode
     ? { text: agentAnswer(String((run.input as { message?: string })?.message ?? ''), db.agents.find((a) => a.id === run.agent_id)?.name ?? '에이전트') }
     : last
-      ? fakeOutput(last, run.input ?? {})
+      ? (db.run_steps.findLast((x) => x.run_id === run.id && x.node_id === last.id)?.output ?? fakeOutput(last, run.input ?? {}))
       : null;
   setStatus(run, 'succeeded', { finished_at: nowIso(), output });
 }
@@ -261,6 +262,11 @@ async function runNode(run: DbRun, node: NodeDef, st: RunState, session: (typeof
   const tok = tokensFor(node, run.id.length);
   const cost = costOf(step.model, tok.in, tok.out);
   let output = fakeOutput(node, (run.input as Record<string, unknown>) ?? {});
+  if (node.type === 'output') {
+    // 앞 단계가 파일(문서 내보내기 등)을 만들었으면 실서버처럼 결과로 넘긴다
+    const made = db.run_steps.filter((x) => x.run_id === run.id && x.ok).flatMap((x) => collectFileRefs(x.output));
+    if (made.length) output = { result: made.length === 1 ? made[0] : made, delivered_at: nowIso() };
+  }
   if (node.type === 'three_d') {
     const assetId = uuid();
     db.assets_3d.push({ id: assetId, workspace_id: run.workspace_id, run_id: run.id, step_id: stepId, s3_key: `assets/${run.id}/out.glb`, preview_key: `assets/${run.id}/preview.png`, format: 'glb', poly_count: 4212, bytes: 120_484, created_at: nowIso(), url: SAMPLE_GLB, preview_url: SAMPLE_PREVIEW });

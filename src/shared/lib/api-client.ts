@@ -76,6 +76,8 @@ export interface RequestOptions {
   /** 낙관적 잠금 버전. 보내면 `If-Match` 헤더가 붙는다. */
   ifMatch?: string | number;
   signal?: AbortSignal;
+  /** 성공 응답을 JSON 대신 Blob으로 받는다(파일 내려받기). 오류는 그대로 ApiError로 바꾼다. */
+  blob?: boolean;
 }
 
 export function buildQuery(query?: Query): string {
@@ -129,6 +131,7 @@ export async function request<T>(method: string, path: string, opts: RequestOpti
   }
 
   if (res.status === 204) return undefined as T;
+  if (opts.blob && res.ok) return (await res.blob()) as T;
   const text = await res.text();
   const data = text ? safeJson(text) : undefined;
 
@@ -159,6 +162,7 @@ export const api = {
   put: <T>(path: string, body?: unknown, opts?: RequestOptions) => request<T>('PUT', path, { ...opts, body }),
   patch: <T>(path: string, body?: unknown, opts?: RequestOptions) => request<T>('PATCH', path, { ...opts, body }),
   delete: <T>(path: string, opts?: RequestOptions) => request<T>('DELETE', path, opts),
+  blob: (path: string, opts?: RequestOptions) => request<Blob>('GET', path, { ...opts, blob: true }),
 };
 
 /** 커서 페이지네이션 응답 (design.md 2.6.1) */

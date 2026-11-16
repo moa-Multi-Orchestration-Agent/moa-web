@@ -1,29 +1,19 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, Loader2, MessageSquare, Play, RotateCcw, Send } from 'lucide-react';
+import { Loader2, MessageSquare, Play, RotateCcw, Send } from 'lucide-react';
 import { toast } from 'sonner';
-import { fetchRun, isTerminal, useRunEvents, useStartRun, type RunStatus } from '@/entities/run';
+import { fetchRun, isTerminal, useRunEvents, useStartRun } from '@/entities/run';
 import type { InputField, Workflow } from '@/entities/workflow';
 import { isApiError } from '@/shared/lib/api-client';
 import { Button } from '@/shared/ui/button';
-import type { FileRef } from '@/shared/lib/attachments';
+import { collectFileRefs, startDownload, type FileRef } from '@/shared/lib/attachments';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Textarea } from '@/shared/ui/textarea';
 import { ExtraFields, fileInputs, refsFromInput } from './extra-fields';
+import { AnswerBubble, UserBubble, type Msg } from './chat-bubbles';
 import { buildInput, chatField, outputText } from './output-text';
-
-interface Msg {
-  id: string;
-  role: 'user' | 'assistant';
-  text: string;
-  runId?: string;
-  status?: RunStatus;
-  step?: string;
-  error?: string | null;
-}
 
 /**
  * 워크플로 목록의 실행 버튼.
@@ -96,7 +86,9 @@ function WorkflowChatDialog({ workflow, open, onOpenChange }: { workflow: Workfl
       try {
         const d = await fetchRun(runId);
         const answer = outputText(d.output);
-        patch(runId, (m) => ({ ...m, status: d.status, step: undefined, error: d.error_code, text: answer || m.text }));
+        const made = collectFileRefs(d.output);
+        patch(runId, (m) => ({ ...m, status: d.status, step: undefined, error: d.error_code, text: answer || m.text, files: made }));
+        if (made.length === 1) void startDownload(made[0]!).catch(() => undefined); // 파일 하나면 바로 내려받기(실패하면 버튼으로)
       } catch (e) {
         patch(runId, (m) => ({ ...m, status: 'failed', step: undefined, error: (e as Error).message }));
       }
@@ -214,35 +206,5 @@ function WorkflowChatDialog({ workflow, open, onOpenChange }: { workflow: Workfl
         </form>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function UserBubble({ text }: { text: string }) {
-  return <div className="bg-primary-soft ml-auto max-w-[85%] rounded-lg px-4 py-2.5 text-sm whitespace-pre-wrap">{text}</div>;
-}
-
-function AnswerBubble({ m }: { m: Msg }) {
-  const running = !!m.status && !isTerminal(m.status) && m.status !== 'waiting_approval';
-  const failed = m.status === 'failed' || m.status === 'canceled' || (!!m.error && !m.text);
-  return (
-    <div className="bg-card max-w-[95%] space-y-2 rounded-lg border p-3.5" aria-live="polite" aria-busy={running}>
-      {m.text ? <p className="text-sm leading-6 whitespace-pre-wrap">{m.text}</p> : null}
-      {running && !m.text ? (
-        <p className="text-muted flex items-center gap-2 text-sm">
-          <Loader2 className="size-4 animate-spin" aria-hidden /> {m.step ? `${m.step} 실행 중…` : '실행 준비 중…'}
-        </p>
-      ) : null}
-      {m.status === 'waiting_approval' ? <p className="text-warning text-sm">승인 대기 중이에요. 로그 화면에서 승인하면 계속 진행됩니다.</p> : null}
-      {failed ? (
-        <p role="alert" className="text-danger flex items-center gap-2 text-sm">
-          <AlertTriangle className="size-4" aria-hidden /> 실행에 실패했어요{m.error ? ` (${m.error})` : ''}
-        </p>
-      ) : null}
-      {m.runId ? (
-        <Link href={`/runs/${m.runId}`} className="text-muted inline-block text-xs hover:underline">
-          로그 보기 →
-        </Link>
-      ) : null}
-    </div>
   );
 }
