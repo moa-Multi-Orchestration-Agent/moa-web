@@ -9,10 +9,10 @@ import { fetchRun, isTerminal, useRunEvents, useStartRun, type RunStatus } from 
 import type { InputField, Workflow } from '@/entities/workflow';
 import { isApiError } from '@/shared/lib/api-client';
 import { Button } from '@/shared/ui/button';
+import type { FileRef } from '@/shared/lib/attachments';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
-import { Input } from '@/shared/ui/input';
-import { Label } from '@/shared/ui/label';
 import { Textarea } from '@/shared/ui/textarea';
+import { ExtraFields, fileInputs, refsFromInput } from './extra-fields';
 import { buildInput, chatField, outputText } from './output-text';
 
 interface Msg {
@@ -81,6 +81,8 @@ function WorkflowChatDialog({ workflow, open, onOpenChange }: { workflow: Workfl
   const [messages, setMessages] = useState<Msg[]>([]);
   const [text, setText] = useState('');
   const [extra, setExtra] = useState<Record<string, string>>({});
+  const [files, setFiles] = useState<Record<string, File[]>>({});
+  const [reused, setReused] = useState<Record<string, FileRef[]>>({});
   const [activeRun, setActiveRun] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
@@ -122,11 +124,23 @@ function WorkflowChatDialog({ workflow, open, onOpenChange }: { workflow: Workfl
   const send = async () => {
     const q = text.trim();
     if (!q || activeRun) return;
+    let attached: Record<string, unknown>;
+    try {
+      attached = await fileInputs(fields, files, reused);
+    } catch (e) {
+      toast.error((e as Error).message);
+      return;
+    }
     setText('');
     setMessages((all) => [...all, { id: crypto.randomUUID(), role: 'user', text: q }]);
     try {
-      const run = await start.mutateAsync({ workflow_id: workflow.id, input: buildInput(fields, extra, q), context_session_id: sessionId ?? undefined });
+      const run = await start.mutateAsync({ workflow_id: workflow.id, input: { ...buildInput(fields, extra, q), ...attached }, context_session_id: sessionId ?? undefined });
       if (run.context_session_id) setSessionId(run.context_session_id); // 같은 대화 기록을 이어서 쓴다
+      const refs = refsFromInput(fields, run.input); // 서버가 저장한 첨부는 다음 메시지에서 참조로 다시 쓴다
+      if (Object.keys(refs).length) {
+        setReused((r) => ({ ...r, ...refs }));
+        setFiles((f) => Object.fromEntries(Object.entries(f).filter(([k]) => !refs[k])));
+      }
       setMessages((all) => [...all, { id: crypto.randomUUID(), role: 'assistant', text: '', runId: run.id, status: 'queued' }]);
       setActiveRun(run.id);
     } catch (e) {
@@ -137,6 +151,8 @@ function WorkflowChatDialog({ workflow, open, onOpenChange }: { workflow: Workfl
   const reset = () => {
     setMessages([]);
     setSessionId(null);
+    setFiles({});
+    setReused({});
     setActiveRun(null);
   };
   const busy = !!activeRun || start.isPending;
@@ -153,25 +169,15 @@ function WorkflowChatDialog({ workflow, open, onOpenChange }: { workflow: Workfl
           </DialogTitle>
           <DialogDescription>적은 내용을 입력 노드의 &apos;{main}&apos; 칸에 넣어 실행하고, 출력 노드의 결과를 보여 줍니다.</DialogDescription>
         </DialogHeader>
-        {others.length ? (
-          <div className="bg-surface grid grid-cols-2 gap-3 border-b px-5 py-3">
-            {others.map((f) => (
-              <div key={f.name} className="space-y-1">
-                <Label htmlFor={`wf-in-${f.name}`} className="text-xs">
-                  {f.description || f.name}
-                  {f.required ? ' *' : ''}
-                </Label>
-                <Input
-                  id={`wf-in-${f.name}`}
-                  className="h-8 text-sm"
-                  value={extra[f.name] ?? ''}
-                  placeholder={f.default !== undefined ? `기본값: ${String(f.default)}` : f.enum?.join(' / ')}
-                  onChange={(e) => setExtra((x) => ({ ...x, [f.name]: e.target.value }))}
-                />
-              </div>
-            ))}
-          </div>
-        ) : null}
+        <ExtraFields
+          fields={others}
+          extra={extra}
+          onExtra={(name, v) => setExtra((x) => ({ ...x, [name]: v }))}
+          files={files}
+          onFiles={(name, v) => setFiles((x) => ({ ...x, [name]: v }))}
+          reused={reused}
+          disabled={busy}
+        />
         <div ref={logRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto p-5" role="log" aria-label="실행 대화">
           {messages.length === 0 ? (
             <div className="text-muted flex h-full flex-col items-center justify-center gap-2 text-center text-sm">

@@ -59,7 +59,23 @@ export function toDefinition(nodes: FlowNode[], edges: FlowEdge[]): WorkflowDefi
 
 /** 입력 노드의 필드 정의 → 출력 포트 */
 export function portsFromFields(fields: { name: string; type: string }[]): Port[] {
-  return fields.filter((f) => f.name).map((f) => ({ name: f.name, type: (f.type === 'integer' ? 'number' : f.type) as Port['type'], label: f.name }));
+  return fields.filter((f) => f.name).map((f) => ({ name: f.name, type: (f.type === 'integer' ? 'number' : f.type === 'files' ? 'file' : f.type) as Port['type'], label: f.name }));
+}
+
+/** 카탈로그에 새로 생긴 입력 포트(예: LLM 첨부)를 예전에 저장한 노드에도 붙인다. 기존 포트는 그대로 둔다. */
+export function withCatalogPorts<T extends Pick<WorkflowDefinition, 'nodes'>>(defn: T, blocks: Block[]): T {
+  const byId = new Map(blocks.map((b) => [b.id, b]));
+  let changed = false;
+  const nodes = defn.nodes.map((n) => {
+    const block = n.block ? byId.get(n.block) : undefined;
+    if (!block || n.type === 'input') return n;
+    const have = new Set((n.ports_in ?? []).map((p) => p.name));
+    const missing = block.ports_in.filter((p) => !have.has(p.name));
+    if (!missing.length) return n;
+    changed = true;
+    return { ...n, ports_in: [...(n.ports_in ?? []), ...missing] };
+  });
+  return changed ? { ...defn, nodes } : defn;
 }
 
 export function nodeFromBlock(block: Block, id: string, position: { x: number; y: number }): FlowNode {

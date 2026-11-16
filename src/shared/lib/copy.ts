@@ -423,6 +423,20 @@ export const copy = {
     integrations: '연동',
     settings: '설정',
   },
+  attachments: {
+    pick: '파일 선택',
+    dropHint: 'PDF·이미지를 끌어다 놓거나 눌러서 고르세요',
+    limits: (count: number, size: string) => `최대 ${count}개 · 합계 ${size}`,
+    remove: (name: string) => `${name} 빼기`,
+    preparing: '파일 준비 중…',
+    tooMany: (n: number) => `파일은 ${n}개까지 첨부할 수 있습니다.`,
+    badType: (name: string) => `'${name}': PDF와 이미지(PNG·JPEG·GIF·WEBP)만 첨부할 수 있습니다.`,
+    tooBig: (name: string, max: string) => `'${name}' 파일이 너무 큽니다(최대 ${max}).`,
+    totalTooBig: (max: string) => `첨부 파일 합계는 ${max}까지입니다.`,
+    readFailed: (name: string) => `'${name}' 파일을 읽지 못했습니다.`,
+    required: '파일을 첨부해 주세요.',
+    reused: (n: number) => `이전에 올린 파일 ${n}개를 다시 씁니다`,
+  },
 } as const;
 
 export type Copy = typeof copy;
