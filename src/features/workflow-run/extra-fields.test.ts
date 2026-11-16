@@ -22,6 +22,13 @@ describe('대화창 첨부 입력', () => {
     expect(out).toEqual({ doc: ref('d.png'), pics: [ref('p1.png'), ref('p2.png')] });
   });
 
+  it('고른 파일도 앞 실행 참조도 없으면 기본 첨부를 참조로 보낸다(필수여도 통과)', async () => {
+    const withDefault: InputField[] = [{ name: 'doc', type: 'file', required: true, default: ref('규정.png') }, { name: 'pics', type: 'files', default: [ref('a.png'), ref('b.png')] }];
+    expect(await fileInputs(withDefault, {}, {})).toEqual({ doc: ref('규정.png'), pics: [ref('a.png'), ref('b.png')] });
+    const out = await fileInputs(withDefault, { doc: [pdf()] }, { pics: [ref('prev.png')] });
+    expect(out).toEqual({ doc: { filename: 'a.pdf', mime: 'application/pdf', data_base64: 'JVBERg==' }, pics: [ref('prev.png')] });
+  });
+
   it('필수 첨부가 없거나 형식이 틀리면 오류', async () => {
     await expect(fileInputs(fields, {}, {})).rejects.toThrow('파일을 첨부해 주세요');
     const docx = new File(['x'], 'a.docx', { type: 'application/msword' });

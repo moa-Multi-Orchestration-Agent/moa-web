@@ -118,6 +118,14 @@ export function inputFieldsOf(defn: Pick<WorkflowDefinition, 'nodes'>): InputFie
   return ((input?.config?.fields as InputField[] | undefined) ?? []).filter((f) => f && f.name);
 }
 
+/** 기본값 스키마. 파일 필드는 저장 경로를 숨기고 파일 이름만 알린다(백엔드 input_schema_of와 같음) */
+function defaultSpec(f: InputField): Record<string, unknown> {
+  if (f.default === undefined) return {};
+  if (f.type !== 'file' && f.type !== 'files') return { default: f.default };
+  const refs = (Array.isArray(f.default) ? f.default : [f.default]).filter((v): v is { filename?: string; storage_key: string } => !!v && typeof v === 'object' && (v as { kind?: unknown }).kind === 'file' && typeof (v as { storage_key?: unknown }).storage_key === 'string');
+  return refs.length ? { 'x-moa-default-files': refs.map((r) => r.filename || '파일') } : {};
+}
+
 export function inputSchemaOf(defn: Pick<WorkflowDefinition, 'nodes'>): Record<string, unknown> {
   const fields = inputFieldsOf(defn);
   const properties: Record<string, unknown> = {};
@@ -127,7 +135,7 @@ export function inputSchemaOf(defn: Pick<WorkflowDefinition, 'nodes'>): Record<s
       ...type,
       ...(f.description ? { description: f.description } : {}),
       ...(f.enum?.length ? { enum: f.enum } : {}),
-      ...(f.default !== undefined ? { default: f.default } : {}),
+      ...defaultSpec(f),
     };
   }
   return {

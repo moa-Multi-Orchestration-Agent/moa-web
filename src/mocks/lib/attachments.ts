@@ -2,7 +2,7 @@
  * 목 API의 첨부 처리. 백엔드 app/engine/files.py ingest_input_files와 같은 모양으로,
  * `{filename, data_base64}`를 파일 참조로 바꾼다. 목에서는 파일 내용을 보관하지 않는다.
  */
-import { ATTACH_MAX_FILE_BYTES, ATTACH_MAX_FILES, ATTACH_MAX_TOTAL_BYTES, ATTACH_MIMES, isFileRef, type FileRef } from '@/shared/lib/attachments';
+import { ATTACH_MAX_FILE_BYTES, ATTACH_MAX_FILES, ATTACH_MAX_IMAGE_BYTES, ATTACH_MAX_TOTAL_BYTES, ATTACH_MIMES, DEFAULT_FILE_LIMITS, isFileRef, type FileRef } from '@/shared/lib/attachments';
 import { problem } from './http';
 import { uuid } from './util';
 
@@ -16,6 +16,22 @@ function sniff(b64: string): string | null {
   if (head.startsWith('R0lGOD')) return 'image/gif';
   if (head.startsWith('UklGR')) return 'image/webp';
   return null;
+}
+
+function toRef(wsId: string, folder: string, name: string, mime: string, size: number): FileRef {
+  return { kind: 'file', filename: name, mime, size, storage_key: `uploads/${wsId}/${folder}/${uuid()}${EXT[mime]}`, ...(mime === 'application/pdf' ? { pages: 1 } : {}) };
+}
+
+/** 기본 첨부 올리기(POST /files). 백엔드 store_default_file과 같은 검사(파일 10MB·이미지 5MB). 목은 내용을 보관하지 않는다. */
+export function mockDefaultFile(wsId: string, u: { filename?: string; data_base64?: string }): FileRef | Response {
+  const name = (u.filename ?? '').trim() || '첨부 파일';
+  const data = String(u.data_base64 ?? '').replace(/^data:[^,]*,/, '');
+  const size = Math.floor((data.length * 3) / 4);
+  const mime = sniff(data);
+  if (!mime) return problem('MOA-VALIDATION', `'${name}': PDF와 이미지(PNG·JPEG·GIF·WEBP)만 첨부할 수 있습니다.`, {}, 415);
+  if (size > DEFAULT_FILE_LIMITS.maxFile) return problem('MOA-VALIDATION', `'${name}' 파일이 너무 큽니다(최대 10MB).`, {}, 413);
+  if (mime.startsWith('image/') && size > ATTACH_MAX_IMAGE_BYTES) return problem('MOA-VALIDATION', `'${name}': 이미지는 5MB까지 첨부할 수 있습니다.`, {}, 413);
+  return toRef(wsId, 'assets', name, mime, size);
 }
 
 const isUpload = (v: unknown): v is { filename?: string; data_base64: string } => !!v && typeof v === 'object' && typeof (v as { data_base64?: unknown }).data_base64 === 'string';
@@ -36,8 +52,9 @@ export function ingestMockFiles(wsId: string, input: Record<string, unknown>): R
     const mime = sniff(data);
     if (!mime || !(ATTACH_MIMES as readonly string[]).includes(mime)) return problem('MOA-VALIDATION', `'${name}': PDF와 이미지(PNG·JPEG·GIF·WEBP)만 첨부할 수 있습니다.`, {}, 415);
     if (size > ATTACH_MAX_FILE_BYTES) return problem('MOA-VALIDATION', `'${name}' 파일이 너무 큽니다.`, {}, 413);
+    if (mime.startsWith('image/') && size > ATTACH_MAX_IMAGE_BYTES) return problem('MOA-VALIDATION', `'${name}': 이미지는 5MB까지 첨부할 수 있습니다.`, {}, 413);
     total += size;
-    return { kind: 'file', filename: name, mime, size, storage_key: `uploads/${wsId}/mock/${uuid()}${EXT[mime]}`, ...(mime === 'application/pdf' ? { pages: 1 } : {}) };
+    return toRef(wsId, 'mock', name, mime, size);
   };
 
   const out: Record<string, unknown> = {};

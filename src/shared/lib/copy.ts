@@ -436,6 +436,13 @@ export const copy = {
     readFailed: (name: string) => `'${name}' 파일을 읽지 못했습니다.`,
     required: '파일을 첨부해 주세요.',
     reused: (n: number) => `이전에 올린 파일 ${n}개를 다시 씁니다`,
+    imageTooBig: (name: string, max: string) => `'${name}': 이미지는 ${max}까지 첨부할 수 있습니다.`,
+    defaultTitle: '기본 첨부',
+    defaultHint: '실행할 때 파일을 안 올리면 이 파일을 씁니다. PDF·이미지 아무거나 고르면 형식은 알아서 판단해요.',
+    defaultLimits: (file: string, image: string, pages: number) => `파일 ${file} · 이미지 ${image} · PDF ${pages}쪽까지`,
+    uploading: '올리는 중…',
+    usingDefault: (names: string) => `기본 첨부 사용: ${names} (새로 고르면 이번 실행만 바뀝니다)`,
+    switchedToFiles: '파일이 여러 개라 타입을 files(여러 개)로 바꿨어요.',
   },
 } as const;
 
