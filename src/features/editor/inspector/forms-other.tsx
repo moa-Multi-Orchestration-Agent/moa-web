@@ -5,6 +5,7 @@ import { inputSchemaOf, type InputField } from '@/entities/workflow';
 import { useMembers, useCurrentWorkspace } from '@/entities/workspace';
 import { Button } from '@/shared/ui/button';
 import { portsFromFields } from '../convert';
+import { DefaultFiles, withFieldType } from './default-files';
 import type { FormProps } from './forms-ai';
 import { AreaField, CheckField, SelectField, SliderField, TextField } from './fields';
 import { TemplateInput } from './template-input';
@@ -124,13 +125,14 @@ export function InputForm({ cfg, set, setData, disabled }: FormProps) {
         <div key={i} className="space-y-2 rounded-md border p-2.5">
           <div className="grid grid-cols-[1fr_110px_auto] items-end gap-1.5">
             <TextField label="이름" value={f.name} onChange={(v) => update(fields.map((x, j) => (j === i ? { ...x, name: v.replace(/[^a-zA-Z0-9_]/g, '') } : x)))} mono disabled={disabled} />
-            <SelectField label="타입" value={f.type} onChange={(v) => update(fields.map((x, j) => (j === i ? { ...x, type: v as InputField['type'] } : x)))} options={['string', 'number', 'integer', 'boolean', 'array', 'object', 'file', 'files'].map((t) => ({ value: t, label: FIELD_TYPE_LABEL[t] ?? t }))} disabled={disabled} />
+            <SelectField label="타입" value={f.type} onChange={(v) => update(fields.map((x, j) => (j === i ? withFieldType(x, v as InputField['type']) : x)))} options={['string', 'number', 'integer', 'boolean', 'array', 'object', 'file', 'files'].map((t) => ({ value: t, label: FIELD_TYPE_LABEL[t] ?? t }))} disabled={disabled} />
             <Button size="icon-sm" variant="ghost" onClick={() => update(fields.filter((_, j) => j !== i))} disabled={disabled} aria-label={`필드 ${f.name || i + 1} 삭제`}>
               <Trash2 aria-hidden />
             </Button>
           </div>
           <TextField label="설명" value={f.description ?? ''} onChange={(v) => update(fields.map((x, j) => (j === i ? { ...x, description: v } : x)))} disabled={disabled} />
           <CheckField label="필수" checked={!!f.required} onChange={(v) => update(fields.map((x, j) => (j === i ? { ...x, required: v } : x)))} disabled={disabled} />
+          {f.type === 'file' || f.type === 'files' ? <DefaultFiles field={f} onChange={(next) => update(fields.map((x, j) => (j === i ? next : x)))} disabled={disabled} /> : null}
         </div>
       ))}
       <Button size="sm" variant="outline" onClick={() => update([...fields, { name: `field${fields.length + 1}`, type: 'string', required: false }])} disabled={disabled}>

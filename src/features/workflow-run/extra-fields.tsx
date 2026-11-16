@@ -1,7 +1,7 @@
 'use client';
 
 import type { InputField } from '@/entities/workflow';
-import { checkFiles, filesToUploads, isFileRef, type FileRef } from '@/shared/lib/attachments';
+import { checkFiles, defaultRefs, filesToUploads, isFileRef, type FileRef } from '@/shared/lib/attachments';
 import { copy } from '@/shared/lib/copy';
 import { FilePicker } from '@/shared/ui/file-picker';
 import { Input } from '@/shared/ui/input';
@@ -39,7 +39,11 @@ export function ExtraFields({
           {isFileField(f) ? (
             <>
               <FilePicker id={`wf-in-${f.name}`} files={files[f.name] ?? []} onChange={(v) => onFiles(f.name, v)} multiple={f.type === 'files'} disabled={disabled} compact />
-              {!files[f.name]?.length && reused[f.name]?.length ? <p className="text-muted text-xs">{copy.attachments.reused(reused[f.name]!.length)}</p> : null}
+              {!files[f.name]?.length && reused[f.name]?.length ? (
+                <p className="text-muted text-xs">{copy.attachments.reused(reused[f.name]!.length)}</p>
+              ) : !files[f.name]?.length && defaultRefs(f.default).length ? (
+                <p className="text-muted text-xs">{copy.attachments.usingDefault(defaultRefs(f.default).map((r) => r.filename).join(', '))}</p>
+              ) : null}
             </>
           ) : (
             <Input
@@ -74,6 +78,9 @@ export async function fileInputs(fields: InputField[], files: Record<string, Fil
       out[f.name] = f.type === 'file' ? uploads[0] : uploads;
     } else if (reused[f.name]?.length) {
       out[f.name] = f.type === 'file' ? reused[f.name]![0] : reused[f.name];
+    } else if (defaultRefs(f.default).length) {
+      const refs = defaultRefs(f.default); // 기본 첨부. 참조로 보내면 서버가 실행 시작 때 있는지 확인한다
+      out[f.name] = f.type === 'file' ? refs[0] : refs;
     } else if (f.required) {
       throw new Error(`${f.description || f.name}: ${copy.attachments.required}`);
     }
