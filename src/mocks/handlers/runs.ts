@@ -2,6 +2,7 @@ import { http, HttpResponse } from 'msw';
 import type { WorkflowDefinition } from '@/entities/workflow/model';
 import { db, type DbRun } from '../db';
 import { API, body, guard, isResponse, json, notFound, paginate, problem } from '../lib/http';
+import { ingestMockFiles } from '../lib/attachments';
 import { nowIso, uuid } from '../lib/util';
 import { agentPlan, cancelSimulation, ensureStateForSeeded, eventsOf, isStreamDone, resumeAfterApproval, startSimulation, subscribe } from '../simulator';
 import { approvalView, runDetailView, runView } from '../views';
@@ -35,6 +36,10 @@ export function createRun(wsId: string, b: CreateRunBody): DbRun | Response {
   if (budget?.monthly_limit_usd != null && monthSpent(wsId) >= budget.monthly_limit_usd) {
     return problem('MOA-BUD-001', `이번 달 예산 $${budget.monthly_limit_usd}을 모두 썼습니다. 설정 > 예산에서 한도를 올리세요.`);
   }
+  // 백엔드처럼 base64 첨부는 실행 시작 때 참조로 바꾼다(run 입력에 base64를 남기지 않는다)
+  const ingested = ingestMockFiles(wsId, b.input ?? {});
+  if (isResponse(ingested)) return ingested;
+  b = { ...b, input: ingested };
   let definition: WorkflowDefinition | null = null;
   let workflowId: string | null = b.workflow_id ?? null;
   let versionId: string | null = null;
