@@ -16,6 +16,7 @@ import { RunStatusBadge } from '@/shared/ui/status-badge';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/shared/ui/table';
 import { useEditorStore } from './store';
 import type { useEditorRun } from './use-editor-run';
+import { CardNewsOutput } from './card-news-output';
 
 type RunApi = ReturnType<typeof useEditorRun>;
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -27,6 +28,7 @@ const TABS = [
   ['log', '로그'],
   ['io', '노드별 입출력'],
   ['cost', '토큰 · 비용'],
+  ['cards', '카드뉴스'],
 ] as const;
 
 function LogView({ lines, dropped }: { lines: RunApi['lines']; dropped: number }) {
@@ -68,6 +70,7 @@ export function RunConsole({ r }: { r: RunApi }) {
   const nodes = useEditorStore((s) => s.nodes);
   const name = (id: string) => nodes.find((n) => n.id === id)?.data.name ?? id;
   const steps = detail.data?.steps ?? [];
+  const hasCards = nodes.some((n) => n.data.block === 'tool.card_news_render');
   const total = steps.reduce((acc, s) => ({ tin: acc.tin + s.tokens_in, tout: acc.tout + s.tokens_out, cost: acc.cost + s.cost_usd }), { tin: 0, tout: 0, cost: 0 });
 
   const act = (approve: boolean) =>
@@ -88,7 +91,7 @@ export function RunConsole({ r }: { r: RunApi }) {
         ) : null}
         {open ? (
           <div role="tablist" aria-label="콘솔 탭" className="ml-4 flex gap-3">
-            {TABS.map(([k, l]) => (
+            {TABS.filter(([k]) => k !== 'cards' || hasCards).map(([k, l]) => (
               <button key={k} role="tab" type="button" aria-selected={tab === k} onClick={() => setTab(k)} className={cn('text-xs', tab === k ? 'font-bold' : 'text-muted')}>
                 {l}
               </button>
@@ -130,6 +133,8 @@ export function RunConsole({ r }: { r: RunApi }) {
             <div className="p-4">
               <EmptyState className="py-6" title="아직 테스트 실행이 없어요" description="상단의 '테스트 실행'(⌘Enter)으로 지금 캔버스를 실행해 보세요." />
             </div>
+          ) : tab === 'cards' && hasCards ? (
+            <CardNewsOutput outputs={steps.filter((s) => s.ok).map((s) => s.output)} />
           ) : tab === 'log' ? (
             <LogView lines={r.lines} dropped={r.dropped} />
           ) : tab === 'io' ? (

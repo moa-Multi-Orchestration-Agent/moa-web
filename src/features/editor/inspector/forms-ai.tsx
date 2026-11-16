@@ -12,6 +12,7 @@ import { ModelParamsFields, ModelPicker } from '@/shared/ui/model-params';
 import type { FlowNode } from '../convert';
 import { CheckField, SelectField, SliderField, TextField } from './fields';
 import { TemplateInput, type BindingOption } from './template-input';
+import { CardNewsSettings } from '../card-news-settings';
 
 export interface FormProps {
   node: FlowNode;
@@ -101,7 +102,8 @@ export function KbForm({ cfg, set, disabled }: FormProps) {
 }
 
 /** MCP·내장 도구: 도구를 고르면 입력 스키마로 폼을 만든다 */
-export function ToolForm({ cfg, set, disabled }: FormProps) {
+export function ToolForm(form: FormProps) {
+  const { cfg, set, disabled } = form;
   const tools = useMcpTools();
   const servers = [...new Set((tools.data ?? []).map((t) => t.server_name))];
   const server = String(cfg.mcp_server ?? '');
@@ -109,6 +111,9 @@ export function ToolForm({ cfg, set, disabled }: FormProps) {
   const props = (tool?.input_schema.properties ?? {}) as Record<string, { type?: string; description?: string }>;
   const required = (tool?.input_schema.required as string[] | undefined) ?? [];
   const args = (cfg.args as Record<string, unknown>) ?? {};
+
+  if (cfg.tool === 'card_news_render') return <CardNewsSettings {...form} />;
+  if (cfg.tool === 'news_collect') return <div className="space-y-2 text-xs text-muted"><p>한국경제 증권 RSS와 공개 기사 설명문을 읽습니다. 결과 articles를 LLM의 참고 자료와 카드 생성의 수집 원문에 연결하세요.</p><p>키가 필요한 LLM 요약은 다음 LLM 노드에서 별도로 설정합니다.</p></div>;
 
   if (!cfg.mcp_server && cfg.tool) {
     return (
