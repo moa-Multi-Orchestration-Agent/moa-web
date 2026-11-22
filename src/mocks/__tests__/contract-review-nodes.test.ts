@@ -39,7 +39,7 @@ describe('근로계약서 검토용 노드', () => {
     const cfg = block.config as { checklist: { title: string }[]; criteria: { value: string }[]; skip_labels: string[] };
     expect(cfg.checklist.map((c) => c.title)).toEqual(['위약금·손해배상 예정', '임금·포괄임금', '근로시간·연장근로', '휴게·휴일·연차휴가', '해고·계약 해지', '수습·계약기간']);
     expect(cfg.criteria.map((c) => c.value)).toEqual(['10,320원', '2,156,880원']);
-    expect(cfg.skip_labels).toEqual(['근로계약서 아님']);
+    expect(cfg.skip_labels).toEqual(['주택 임대차계약서', '용역·프리랜서 계약서', '기타 계약서', '계약서 아님']);
     expect(nodeColor('risk_check')).toBe(NODE_GROUP_COLORS.llm);
     const out = fakeOutput(makeNode('n4', 'llm.risk_check', '검사', 0, 0), {}) as { text: string };
     expect(out.text.match(/\[항목\] /g)).toHaveLength(6);

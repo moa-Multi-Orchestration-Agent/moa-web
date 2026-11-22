@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CONTRACT_PRESETS, contractPreset, presetConfig } from '@/entities/workflow/contract-presets';
+import { CONTRACT_LABELS, CONTRACT_PRESETS, contractPreset, presetConfig } from '@/entities/workflow/contract-presets';
 import { fakeOutput } from '../engine';
 import { blockById, makeNode } from '../fixtures/blocks';
 
@@ -20,7 +20,13 @@ describe('계약서 검토 프리셋', () => {
       expect(c.title && c.check && c.law).toBeTruthy();
       expect(LEVELS).toContain(c.default_level);
     }
-    expect(p.skip_labels).toHaveLength(1);
+    expect(CONTRACT_LABELS).toContain(p.contract_kind); // 분류 라벨과 이름이 같아야 걸러내기가 맞는다
+  });
+
+  it('presetConfig: 고른 종류가 아닌 분류 라벨은 모두 검토하지 않는다', () => {
+    const cfg = presetConfig(contractPreset('lease')!) as { skip_labels: string[] };
+    expect(cfg.skip_labels).toEqual(['근로계약서', '용역·프리랜서 계약서', '기타 계약서', '계약서 아님']);
+    expect(cfg.skip_labels).not.toContain('주택 임대차계약서');
   });
 
   it('presetConfig: 기본 입장을 첫 값으로 채우고, 원본 프리셋을 공유하지 않는다', () => {

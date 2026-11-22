@@ -1,5 +1,6 @@
 /** 공식 템플릿 25개 (8개 카테고리 × 3 + 복합 작업 자동화 1) */
 import type { EdgeDef, NodeDef, WorkflowDefinition } from '@/entities/workflow/model';
+import { CONTRACT_LABELS } from '@/entities/workflow/contract-presets';
 import { isAssignable } from '@/entities/workflow/graph';
 import type { DbTemplate } from '../db';
 import { makeNode } from './blocks';
@@ -224,48 +225,82 @@ export const SEED_TEMPLATES: DbTemplate[] = [
   contractReview(),
 ];
 
+function edge(id: string, source: string, source_port: string, target: string, target_port: string): EdgeDef {
+  return { id, source, source_port, target, target_port, condition: null };
+}
+
+/** 노드를 한 줄로 늘어놓는다(x 60부터 240 간격). ids를 주면 노드 id를 그것으로 바꾼다. */
+function row(def: WorkflowDefinition, ids?: string[]): NodeDef[] {
+  return def.nodes.map((n, i) => ({ ...n, id: ids?.[i] ?? n.id, position: { x: 60 + i * 240, y: 200 } }));
+}
+
+/** 병렬 맵 결과를 입력 순서대로 이어 붙인다. 백엔드 seed의 tpl-25 n3와 같은 코드다(목 모드는 실행하지 않는다). */
+function joinReviewsCode(): string {
+  // SEED_TEMPLATES가 이 파일 위쪽에서 먼저 만들어지므로 상수 대신 함수로 둔다
+  return `def run(data):
+    # 병렬 맵 결과를 입력 순서대로 이어 붙인다. 실패한 계약서는 사유만 적는다.
+    parts = []
+    for r in data or []:
+        text = ""
+        if isinstance(r, dict) and isinstance(r.get("result"), dict):
+            text = str(r["result"].get("text") or "")
+        elif isinstance(r, dict) and "error" in r:
+            doc = r.get("item") if isinstance(r.get("item"), dict) else {}
+            err = r.get("error") if isinstance(r.get("error"), dict) else {}
+            name = doc.get("filename") or "계약서"
+            text = "## " + str(name) + "\\n검토하지 못했습니다(" + str(err.get("message") or "알 수 없는 오류") + ")."
+        if text:
+            parts.append(text)
+    return "\\n\\n---\\n\\n".join(parts)`;
+}
+
 /**
- * 근로계약서 검토: PDF 여러 건 → 텍스트 추출 → 계약서마다 분류·위험 검사 → 결과 모으기 → 전체 총평.
- * 반복(loop_back) 구조라 chain()의 선형 엣지 대신 노드는 chain()으로 만들고 엣지만 직접 잇는다.
- * 위험 검사(n4)는 반복 노드에 직접 잇지 않는다. 반복 노드가 분류(n3)와 동시에 보내면 두 번 돌기 때문에,
- * 계약서 본문은 config 바인딩 {{n2.output.item}}으로 받는다.
+ * 계약서 검토: PDF 여러 건 → 텍스트 추출 → 병렬 맵으로 계약서마다 하위 워크플로("계약서 1건 검토")를 동시에 실행
+ * → 결과 합치기 → 전체 총평. 하위 워크플로는 복제할 때 함께 만들어지고, 병렬 맵의 workflow_id가 그것을 가리킨다.
  */
 function contractReview(): DbTemplate {
-  const t = T(25, { name: '근로계약서 검토', summary: '근로계약서 PDF 여러 건의 위험 조항을 찾아 한 페이지 검토 요약문을 만듭니다', category: 'data', kind: 'workflow', difficulty: 'hard', icon: '📑', trigger: 'manual', model: 'claude-sonnet-4', skills: [], required_connections: [] }, [
+  const summary = '계약서 PDF 여러 건을 동시에 검토해 위험 조항을 찾고 한 페이지 검토 요약문을 만듭니다';
+  const t = T(25, { name: '계약서 검토', summary, category: 'data', kind: 'workflow', difficulty: 'hard', icon: '📑', trigger: 'manual', model: 'claude-sonnet-4', skills: [], required_connections: [] }, [
     ['input.manual', '계약서 PDF 입력', { fields: [field('files', '계약서 파일 목록 [{filename, data_base64}]', 'array')] }],
-    ['doc.pdf_extract', '텍스트 추출'],
-    ['logic.loop', '계약서마다 반복'],
-    ['llm.classify', '계약서 유형 분류', {
-      labels: ['정규직 근로계약서', '기간제 근로계약서', '단시간 근로계약서', '근로계약서 아님'],
-      prompt: '다음 계약서가 어떤 근로계약서인지 분류해 줘. 근로계약서가 아니면 "근로계약서 아님"으로 답해.\n\n{{n2.output.item.text}}',
-    }],
-    ['llm.risk_check', '위험 조항 검사', { document: '{{n2.output.item}}' }],
-    ['logic.collect', '검토 결과 모으기'],
+    ['doc.pdf_extract', '텍스트 추출', { max_files: 20 }],
+    ['logic.map', '계약서마다 동시에 검토', { workflow_id: 'subflow:item', item_field: 'document', concurrency: 5, max_items: 20, item_timeout_s: 300 }],
+    ['data.code', '검토 결과 합치기', { code: joinReviewsCode() }],
     ['llm.summarize', '전체 총평', {
       query: '전체 총평',
-      prompt: '아래는 근로계약서별 검토 결과다. 전체를 보고 가장 먼저 고쳐야 할 점을 중심으로 총평을 3줄 이내로 써 줘. 결과가 비어 있으면 "검토할 계약서가 없습니다."라고만 써.\n\n{{n5.output.text}}',
+      prompt: '아래는 계약서별 검토 결과다. 전체를 보고 가장 먼저 고쳐야 할 점을 중심으로 총평을 3줄 이내로 써 줘. 결과가 비어 있으면 "검토할 계약서가 없습니다."라고만 써.\n\n{{n3.output.result}}',
     }],
-    ['data.template', '검토 요약문 만들기', { template: '# 근로계약서 검토 요약\n\n{{n5.output.text}}\n\n---\n\n## 전체 총평\n{{n6.output.text}}' }],
+    ['data.template', '검토 요약문 만들기', { template: '# 계약서 검토 요약\n\n{{n3.output.result}}\n\n---\n\n## 전체 총평\n{{n4.output.text}}' }],
     ['output.result', '검토 요약문 반환'],
   ]);
-  // 반복 본문은 윗줄, 반복이 끝난 뒤 흐름은 아랫줄에 둔다
-  const pos: Record<string, [number, number]> = { in: [60, 200], n1: [300, 200], n2: [540, 200], n3: [780, 40], n4: [1020, 40], n5: [1260, 40], n6: [780, 360], n7: [1020, 360], out: [1260, 360] };
-  const nodes = t.definition.nodes.map((n) => {
-    const [x, y] = pos[n.id] ?? [n.position?.x ?? 0, n.position?.y ?? 0];
-    // 위험 검사는 긴 프롬프트·긴 답이라 기본 60초보다 넉넉히, 모델 호출 실패는 한 번 더 시도
-    return n.id === 'n4' ? { ...n, position: { x, y }, timeout_s: 180, retry: { max_attempts: 2 } } : { ...n, position: { x, y } };
-  });
-  const e = (id: string, source: string, source_port: string, target: string, target_port: string, condition: string | null = null): EdgeDef => ({ id, source, source_port, target, target_port, condition });
-  const edges: EdgeDef[] = [
-    e('e1', 'in', 'files', 'n1', 'files'),
-    e('e2', 'n1', 'documents', 'n2', 'items'),
-    e('e3', 'n2', 'item', 'n3', 'query'),
-    e('e4', 'n3', 'label', 'n4', 'contract_type'),
-    e('e5', 'n4', 'review', 'n5', 'item'),
-    e('e6', 'n5', 'next', 'n2', 'items', 'loop_back'),
-    e('e7', 'n2', 'done', 'n6', 'context'),
-    e('e8', 'n6', 'text', 'n7', 'data'),
-    e('e9', 'n7', 'text', 'out', 'result'),
+  // 계약서마다 여러 번의 모델 호출을 기다리므로 병렬 맵 전체 시간은 넉넉히 둔다
+  const nodes = row(t.definition).map((n) => (n.id === 'n2' ? { ...n, timeout_s: 900 } : n));
+  const edges = [
+    edge('e1', 'in', 'files', 'n1', 'files'),
+    edge('e2', 'n1', 'documents', 'n2', 'items'),
+    edge('e3', 'n2', 'results', 'n3', 'data'),
+    edge('e4', 'n3', 'result', 'n4', 'context'),
+    edge('e5', 'n4', 'text', 'n5', 'data'),
+    edge('e6', 'n5', 'text', 'out', 'result'),
   ];
-  return { ...t, definition: { nodes, edges } };
+
+  const sub = chain([
+    ['input.manual', '계약서 1건 입력', { fields: [field('document', '텍스트 추출 결과 {filename, text, error}', 'object')] }],
+    ['llm.classify', '계약서 종류 분류', {
+      // 문서 객체는 문자열 포트(query)에 잇지 못하므로 참고 자료로 잇고, 본문은 프롬프트로 넣는다
+      query: '계약서 종류 분류',
+      labels: [...CONTRACT_LABELS],
+      prompt: '다음 계약서가 어떤 종류의 계약서인지 분류해 줘. 목록에 없는 계약서면 "기타 계약서", 계약서가 아니면 "계약서 아님"으로 답해.\n\n{{in.output.document.text}}',
+    }],
+    ['llm.risk_check', '계약서 검토', { document: '{{in.output.document}}' }],
+    ['output.result', '검토 결과 반환'],
+  ]);
+  // 위험 검사는 긴 프롬프트·긴 답이라 기본 60초보다 넉넉히, 모델 호출 실패는 한 번 더 시도
+  const subNodes = row(sub, ['in', 'c1', 'c2', 'out']).map((n) => (n.id === 'c2' ? { ...n, timeout_s: 180, retry: { max_attempts: 2 } } : n));
+  const subEdges = [edge('e1', 'in', 'document', 'c1', 'context'), edge('e2', 'c1', 'label', 'c2', 'contract_type'), edge('e3', 'c2', 'review', 'out', 'result')];
+
+  return {
+    ...t,
+    definition: { nodes, edges },
+    subflows: [{ key: 'item', name: '계약서 1건 검토', description: '계약서 한 건의 종류를 분류하고 체크리스트로 위험 조항을 검토합니다. 병렬 맵이 계약서마다 부릅니다.', definition: { nodes: subNodes, edges: subEdges } }],
+  };
 }

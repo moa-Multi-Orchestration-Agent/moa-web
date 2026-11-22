@@ -373,6 +373,8 @@ export interface DbTemplate {
   required_connections: RequiredConnection[];
   definition: WorkflowDefinition;
   agent?: { system_prompt: string; builtin_skills: string[] };
+  /** 함께 복제하는 하위 워크플로. 병렬 맵이 workflow_id "subflow:<key>"로 가리킨다(백엔드는 definition.subflows에 둔다) */
+  subflows?: { key: string; name: string; description?: string; definition: WorkflowDefinition }[];
 }
 
 export interface Db {
