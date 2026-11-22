@@ -10,7 +10,7 @@ const tpl = () => SEED_TEMPLATES.find((t) => t.id === 'tpl-25')!;
 
 describe('근로계약서 검토 템플릿(tpl-25)', () => {
   it('맨 뒤에 추가되어 기존 24개 템플릿 순서를 바꾸지 않는다', () => {
-    expect(SEED_TEMPLATES.map((t) => t.id)).toEqual([...Array.from({ length: 24 }, (_, i) => `tpl-${String(i + 1).padStart(2, '0')}`), 'tpl-25']);
+    expect(SEED_TEMPLATES.map((t) => t.id)).toEqual(['tpl-stock-news', ...Array.from({ length: 24 }, (_, i) => `tpl-${String(i + 1).padStart(2, '0')}`), 'tpl-25']);
     expect(tpl()).toMatchObject({ name: '근로계약서 검토', category: 'data', kind: 'workflow', trigger: 'manual', required_connections: [] });
   });
 
