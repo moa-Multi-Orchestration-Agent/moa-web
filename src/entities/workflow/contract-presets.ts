@@ -31,8 +31,13 @@ export interface ContractPreset {
   checklist: ChecklistItem[];
   criteria: Criterion[];
   guidance: string[];
-  skip_labels: string[];
 }
+
+/**
+ * 계약서 검토 템플릿의 "계약서 종류 분류" 노드가 쓰는 라벨. 프리셋의 contract_kind와 이름이 같아야 한다.
+ * 프리셋을 고르면 고른 종류가 아닌 라벨을 모두 skip_labels로 채워, 다른 종류의 계약서는 검토하지 않고 사유만 남긴다.
+ */
+export const CONTRACT_LABELS = ['근로계약서', '주택 임대차계약서', '용역·프리랜서 계약서', '기타 계약서', '계약서 아님'] as const;
 
 /** 프리셋 없이 사용자가 직접 채우는 경우의 id */
 export const CUSTOM_PRESET = 'custom';
@@ -64,7 +69,6 @@ export const CONTRACT_PRESETS: ContractPreset[] = [
       '근거가 법령인지, 판례인지, 행정지침인지 구분해서 적는다.',
       '법 조항을 준용한다고만 쓴 조항은 위험 없음으로 본다.',
     ],
-    skip_labels: ['근로계약서 아님'],
   },
   {
     id: 'lease',
@@ -93,7 +97,6 @@ export const CONTRACT_PRESETS: ContractPreset[] = [
       '근거가 법령인지, 판례인지, 실무상 권고인지 구분해서 적는다.',
       '법 조항을 준용한다고만 쓴 조항은 위험 없음으로 본다.',
     ],
-    skip_labels: ['임대차계약서 아님'],
   },
   {
     id: 'service',
@@ -119,7 +122,6 @@ export const CONTRACT_PRESETS: ContractPreset[] = [
       '손해배상을 계약금액 이내로 제한해도 예외 항목, 건별·총한도, 별도 위약벌을 확인한 뒤 위험도를 정한다.',
       '근거가 법령인지, 판례인지, 실무상 권고인지 구분해서 적는다.',
     ],
-    skip_labels: ['용역계약서 아님'],
   },
 ];
 
@@ -135,6 +137,6 @@ export function presetConfig(p: ContractPreset): Record<string, unknown> {
     checklist: p.checklist.map((c) => ({ ...c })),
     criteria: p.criteria.map((c) => ({ ...c })),
     guidance: [...p.guidance],
-    skip_labels: [...p.skip_labels],
+    skip_labels: CONTRACT_LABELS.filter((l) => l !== p.contract_kind),
   };
 }
