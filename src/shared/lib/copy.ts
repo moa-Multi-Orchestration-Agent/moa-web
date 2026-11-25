@@ -5,7 +5,7 @@
 export const copy = {
   cardNews: {
     title: '국내 주식 카드뉴스', format: '5장 · 1080 × 1350 · JPEG', generating: '이미지 생성 중…', caption: '게시 문안·출처',
-    note: '이 워크플로의 카드 생성 노드 실행 결과입니다. 인스타그램 게시 기능은 아직 연결되지 않았습니다.',
+    note: '이 워크플로의 카드 생성 노드 실행 결과입니다.',
     empty: '카드 생성 노드를 실행하면 이곳에 이미지 5장과 출처가 표시됩니다.',
     mockMode: '목 API의 샘플 실행 결과입니다. 실제 기사 수집·LLM 요약은 실제 백엔드와 모델 키를 연결한 뒤 실행해 주세요.',
     captionDownload: '실행 결과 JSON 저장',

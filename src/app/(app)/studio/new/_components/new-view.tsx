@@ -98,7 +98,7 @@ export function NewView() {
     }
     setError(null);
     try {
-      const t = start === 'auto' ? pickTemplate(`${finalName} ${desc}`, kind, templates.data ?? []) : null;
+      const t = start === 'auto' ? pickTemplate(`${finalName} ${desc}`, kind, templates.data ?? [], desc) : null;
       if (t) {
         const r = await instantiate.mutateAsync({ id: t.id, name: finalName, description: desc || undefined });
         toast.success(`"${t.name}" 템플릿으로 구성했습니다.`);

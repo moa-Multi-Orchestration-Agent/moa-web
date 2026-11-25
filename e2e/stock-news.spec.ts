@@ -5,10 +5,11 @@ test('새로 만들기의 설명으로 워크플로를 구성하고 편집기 �
   await page.goto('/studio/new?type=workflow');
   await expect(page.getByRole('link', { name: '국내 주식 카드뉴스', exact: true })).toHaveCount(0);
   await page.getByLabel('이름', { exact: true }).fill('주식 카드뉴스 인스타 업로드');
-  await page.getByLabel('한 줄 설명').fill('정해진 시간마다 국내주식 뉴스를 스크랩해서 카드뉴스를 생성한후 인스타에 업로드하는 것을 돕습니다.');
+  await page.getByLabel('한 줄 설명').fill('국내 주식 카드뉴스를 만들어 인스타그램에 업로드해줘');
   await page.getByRole('button', { name: '만들기', exact: true }).click();
   await expect(page).toHaveURL(/\/workflows\/[^/]+\/edit/);
-  await expect(page.locator('.react-flow__node')).toHaveCount(6);
+  await expect(page.locator('.react-flow__node')).toHaveCount(7);
+  await expect(page.getByTestId('node-instagram')).toBeVisible();
   await page.getByTestId('node-cards').click();
   await expect(page.getByLabel('표지 제목', { exact: true })).toHaveValue('국내 주식 브리핑');
   await expect(page.getByLabel('인스타 계정명', { exact: true })).toHaveValue('ryorlr_moa');

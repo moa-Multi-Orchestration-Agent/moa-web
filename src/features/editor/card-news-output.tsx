@@ -6,6 +6,11 @@ import { copy } from '@/shared/lib/copy';
 import { EmptyState } from '@/shared/ui/states';
 
 export function CardNewsOutput({ outputs }: { outputs: unknown[] }) {
+  const published = outputs
+    .map((output) => output as { media_id?: unknown; permalink?: unknown; account?: unknown } | null)
+    .find((output) => typeof output?.account === 'string' && typeof output.media_id === 'string' && /^\d+$/.test(output.media_id));
+  const permalink = typeof published?.permalink === 'string' && published.permalink.startsWith('https://www.instagram.com/')
+    ? published.permalink : null;
   const parsed = outputs.map((output) => cardNewsInputSchema.safeParse((output as { bundle?: unknown } | null)?.bundle)).find((result) => result.success);
   const raw = parsed?.success ? JSON.stringify(parsed.data) : '';
   const input = useMemo(() => raw ? cardNewsInputSchema.parse(JSON.parse(raw)) : null, [raw]);
@@ -36,6 +41,11 @@ export function CardNewsOutput({ outputs }: { outputs: unknown[] }) {
       <figcaption className="py-1 text-center text-xs"><a href={url} download={`moa-card-${i + 1}.jpg`} className="text-primary underline">{i + 1}장 JPEG 저장</a></figcaption>
     </figure>)}</div>
     <p className="text-muted text-xs">{copy.cardNews.note}</p>
+    {published && <p className="text-success text-xs">
+      Instagram 게시 완료 · {permalink
+        ? <a href={permalink} target="_blank" rel="noopener noreferrer" className="underline">게시물 열기</a>
+        : <>게시물 ID {String(published.media_id)}</>}
+    </p>}
     <details><summary className="cursor-pointer text-xs font-semibold">게시 문안·출처 확인</summary><p className="mt-2 whitespace-pre-wrap text-xs">{buildCardNews(input).caption}</p></details>
   </div>;
 }

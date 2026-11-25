@@ -3,7 +3,7 @@ import type { EdgeDef, NodeDef, WorkflowDefinition } from '@/entities/workflow/m
 import { isAssignable } from '@/entities/workflow/graph';
 import type { DbTemplate } from '../db';
 import { makeNode } from './blocks';
-import { STOCK_NEWS_TEMPLATE } from './stock-news-template';
+import { STOCK_NEWS_INSTAGRAM_TEMPLATE, STOCK_NEWS_TEMPLATE } from './stock-news-template';
 
 type Step = [blockId: string, name: string, config?: Record<string, unknown>];
 
@@ -54,6 +54,7 @@ const kb = (label: string) => ({ kind: 'kb' as const, provider: 'kb', label });
 
 export const SEED_TEMPLATES: DbTemplate[] = [
   STOCK_NEWS_TEMPLATE,
+  STOCK_NEWS_INSTAGRAM_TEMPLATE,
   // 콘텐츠
   T(1, { name: '블로그 초안 작성', summary: '주제와 톤을 받아 블로그 초안을 씁니다', category: 'content', kind: 'workflow', difficulty: 'easy', icon: '✍️', trigger: 'api', model: 'claude-sonnet-4', skills: [], required_connections: [] }, [
     ['input.api', '주제 입력', { fields: [field('topic', '주제'), field('tone', '톤', 'string', false)] }],

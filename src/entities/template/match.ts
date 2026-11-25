@@ -4,7 +4,18 @@ import type { Template } from './model';
  * "설명으로 초안 만들기"(frontend-plan D4): 설계서에 자연어 → 초안 API가 없어,
  * 설명과 가장 많이 겹치는 템플릿을 골라 instantiate 한다. 겹치는 게 없으면 null.
  */
-export function pickTemplate(text: string, kind: 'agent' | 'workflow', templates: Template[]): Template | null {
+export function pickTemplate(
+  text: string, kind: 'agent' | 'workflow', templates: Template[], description = text,
+): Template | null {
+  const publishTemplateId = 'tpl-stock-news-instagram';
+  const mentionsStockCards = /주식|증권|상장기업|코스피|코스닥|\bstocks?\b/i.test(text)
+    && /카드\s*뉴스|card\s*news/i.test(text);
+  const publish = /(?:인스타(?:\s*그램)?|instagram)(?:\s*(?:계정|피드))?\s*(?:에다가|에도?|으로)?\s*(?:업로드|게시|올려|올리|포스팅|publish|upload)/i.test(description)
+    && !/(?:업로드|게시|포스팅)\s*(?:는|은|를)?\s*(?:하지\s*[마말]|안\s*해|없이|제외|금지)|올리지\s*[마말]/i.test(description);
+  if (kind === 'workflow' && mentionsStockCards) {
+    const selected = templates.find((t) => t.kind === kind && t.id === (publish ? publishTemplateId : 'tpl-stock-news'));
+    if (selected) return selected;
+  }
   const words = text
     .toLowerCase()
     .replace(/[^\p{L}\p{N}\s]/gu, ' ')
@@ -12,7 +23,7 @@ export function pickTemplate(text: string, kind: 'agent' | 'workflow', templates
     .filter((w) => w.length >= 2);
   let best: { t: Template; score: number } | null = null;
   for (const t of templates) {
-    if (t.kind !== kind) continue;
+    if (t.kind !== kind || t.id === publishTemplateId) continue;
     const hay = `${t.name} ${t.summary} ${t.skills.join(' ')}`.toLowerCase();
     let score = 0;
     for (const w of words) {
