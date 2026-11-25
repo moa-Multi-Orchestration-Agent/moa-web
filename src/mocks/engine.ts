@@ -115,7 +115,7 @@ export function fakeOutput(n: NodeDef, input: Record<string, unknown>): unknown 
       // 목 모드: 형식 확인용 고정 검토문(실제 검사가 아님)
       const titles = ((n.config.checklist as { title: string }[] | undefined) ?? []).map((c) => c.title);
       const text = [
-        '## 계약서.pdf — 기간제 근로계약서',
+        `## 계약서.pdf — ${String(n.config.contract_kind ?? '계약서')}`,
         '⚠ 가짜 모델(FakeLLM) 결과 — 형식 확인용이며 실제 검토 결과가 아닙니다.',
         '총평: 목 데이터입니다.',
         `위험도 요약: 높음 0 · 중간 0 · 낮음 0 · 위험 없음 ${titles.length} (추가 발견 0건)`,
