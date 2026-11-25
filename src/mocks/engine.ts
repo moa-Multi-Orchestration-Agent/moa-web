@@ -96,6 +96,7 @@ export function fakeOutput(n: NodeDef, input: Record<string, unknown>): unknown 
     case 'tool':
       if (n.block === 'tool.news_collect') return { articles: MOCK_NEWS_ARTICLES };
       if (n.block === 'tool.card_news_render') return { sample: true, bundle: { title: `[샘플] ${String(n.config.title ?? '국내 주식 브리핑')}`, account: String(n.config.account ?? 'ryorlr_moa'), articles: MOCK_NEWS_ARTICLES } };
+      if (n.block === 'tool.instagram_publish') return { sample: true, media_id: 'sample-instagram-media' };
       if (n.block === 'tool.web_search')
         return { results: [1, 2, 3, 4, 5].map((i) => ({ title: `검색 결과 ${i}`, url: `https://example.com/news/${i}` })) };
       if (n.block === 'tool.mail_send') return { message_id: `<${Date.now()}@moa.dev>` };
