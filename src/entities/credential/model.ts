@@ -37,6 +37,7 @@ export const PROVIDERS = [
   { id: 'slack', label: 'Slack 봇 토큰', kind: 'MCP 토큰', purposes: ['mcp'] },
   { id: 'notion', label: 'Notion 통합 토큰', kind: 'MCP 토큰', purposes: ['mcp'] },
   { id: 'github', label: 'GitHub 토큰', kind: 'MCP 토큰', purposes: ['mcp'] },
+  { id: 'instagram', label: 'Instagram 액세스 토큰', kind: 'Instagram', purposes: ['instagram'] },
   { id: 'three_d', label: '3D 생성 엔진 키', kind: 'API Key', purposes: ['three_d'] },
 ] as const;
 export const providerInfo = (id: string) => PROVIDERS.find((p) => p.id === id);

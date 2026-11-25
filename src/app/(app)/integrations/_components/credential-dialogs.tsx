@@ -73,7 +73,7 @@ export function AddCredentialDialog({ open, onOpenChange, providers, modelKeysOn
               <Input id="cred-base" value={form.base_url ?? ''} onChange={(e) => setForm((f) => ({ ...f, base_url: e.target.value }))} placeholder={compat ? 'https://openrouter.ai/api/v1' : '비워 두면 기본 주소'} className="font-mono text-xs" aria-invalid={!!errs.base_url} />
             </Field>
           ) : null}
-          <Field id="cred-secret" label={compat ? 'API 키 (없으면 비워 두세요)' : '값'} error={errs.secret}>
+          <Field id="cred-secret" label={compat ? 'API 키 (없으면 비워 두세요)' : form.provider === 'instagram' ? 'Instagram 액세스 토큰' : '값'} error={errs.secret}>
             <Input id="cred-secret" type="password" value={form.secret} onChange={(e) => setForm((f) => ({ ...f, secret: e.target.value }))} className="font-mono" aria-invalid={!!errs.secret} />
           </Field>
           {compat ? <ModelIdsField id="cred-models" value={modelsText} onChange={setModelsText} /> : null}

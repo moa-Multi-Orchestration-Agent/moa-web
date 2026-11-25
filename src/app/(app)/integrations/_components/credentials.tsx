@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { PROVIDERS, providerInfo, useCredentials, useDeleteCredential, type Credential } from '@/entities/credential';
+import { PROVIDERS, providerInfo, useCredentials, useDeleteCredential, useTestCredential, type Credential } from '@/entities/credential';
 import { useCurrentWorkspace } from '@/entities/workspace';
 import { copy } from '@/shared/lib/copy';
 import { formatDate } from '@/shared/lib/format';
@@ -20,6 +20,7 @@ import { AddCredentialDialog, EditCredentialDialog } from './credential-dialogs'
 export function CredentialsCard({ modelKeysOnly }: { modelKeysOnly?: boolean }) {
   const q = useCredentials();
   const del = useDeleteCredential();
+  const test = useTestCredential();
   const { can } = useCurrentWorkspace();
   const providers = PROVIDERS.filter((p) => !modelKeysOnly || p.purposes.includes('llm' as never));
   const [open, setOpen] = useState(false);
@@ -45,7 +46,22 @@ export function CredentialsCard({ modelKeysOnly }: { modelKeysOnly?: boolean }) 
                 <TableCell className="font-mono text-xs">{c.masked}{c.baseUrl ? <span className="text-muted block max-w-56 truncate" title={c.baseUrl}>{c.baseUrl}</span> : null}</TableCell>
                 <TableCell className="text-muted">{c.usedBy.join(' · ') || '없음'}</TableCell>
                 <TableCell>{c.isDemo ? <Badge variant="orange">보기용 시드 키</Badge> : soon(c.expiresAt) ? <Badge variant="orange">만료 {formatDate(c.expiresAt)}</Badge> : <Badge variant="gray">암호화 저장</Badge>}</TableCell>
-                <TableCell><Guarded allowed={can('manageKeys')} reason={copy.common.adminOnly}><div className="flex"><Button size="icon-sm" variant="ghost" onClick={() => setEditing(c)} aria-label={`${c.label} 수정`}><Pencil aria-hidden /></Button><Button size="icon-sm" variant="ghost" onClick={() => setDeleting({ id: c.id, label: c.label })} aria-label={`${c.label} 삭제`}><Trash2 aria-hidden /></Button></div></Guarded></TableCell>
+                <TableCell>
+                  <Guarded allowed={can('manageKeys')} reason={copy.common.adminOnly}>
+                    <div className="flex items-center">
+                      {c.provider === 'instagram' && <Button size="sm" variant="ghost" disabled={test.isPending} onClick={() => test.mutate(c.id, {
+                        onSuccess: (result) => {
+                          if (!result.ok) toast.error(result.message);
+                          else if (result.checked) toast.success(result.message);
+                          else toast.info(result.message);
+                        },
+                        onError: (error) => toast.error(error.message),
+                      })}>연결 확인</Button>}
+                      <Button size="icon-sm" variant="ghost" onClick={() => setEditing(c)} aria-label={`${c.label} 수정`}><Pencil aria-hidden /></Button>
+                      <Button size="icon-sm" variant="ghost" onClick={() => setDeleting({ id: c.id, label: c.label })} aria-label={`${c.label} 삭제`}><Trash2 aria-hidden /></Button>
+                    </div>
+                  </Guarded>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

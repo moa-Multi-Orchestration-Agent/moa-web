@@ -80,6 +80,7 @@ export const modelHandlers = [
     const c = db.credentials.find((x) => x.id === params.id && x.workspace_id === ctx.wsId);
     if (!c) return notFound('자격증명');
     if (c.is_demo) return json({ ok: false, checked: false, message: '시드에 들어 있는 보기용 키입니다. 실제 키를 새로 등록하세요.' });
+    if (c.provider === 'instagram') return json({ ok: true, checked: false, message: '목 API 모드에서는 Meta에 연결하지 않습니다.' });
     if (!KEYED.includes(c.provider)) return json({ ok: true, checked: false, message: '이 종류는 연결 확인을 지원하지 않습니다. 실행할 때 확인됩니다.' });
     // 목: 'bad'가 들어간 키는 거부된 것으로 본다
     const models = c.provider === 'openai_compatible' ? ['meta-llama/llama-3.1-70b-instruct', 'qwen/qwen-2.5-72b-instruct'] : c.provider === 'openai' ? ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1'] : [];
